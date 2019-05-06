@@ -1,54 +1,73 @@
-int VectorX3D(int distance, int yaw, int pitch){
-	return distance*Sin(pitch)*Cos(yaw);
-}
+//////////////////////////////
+/// Scrolling System       ///
+/// for Zelda Classic 2.55 ///
+/// Alpha 22, or Later     ///
+/// v0.3                   ///
+/// 6th May, 2019          ///
+//////////////////////////////
+// v0.1 : Initial Base
+// v0.2 : Added Solidity
+// v0.3 : Changed the scroll script from a hero script to a dmap script.
+//      : Moved bitmaps into their own class. Construct on hero init, clear on dmap script. 
+//      : This allows us to recycle the same master bitmaps per dmap, so that each dmap change
+//      : loads its own dmap script, initialising the values to the maps that we want to use. 
 
-int VectorY3D(int distance, int yaw, int pitch){
-	return distance*Sin(pitch)*Sin(yaw);
-}
 
-int VectorZ3D(int distance, int yaw, int pitch){
-	return distance*Cos(pitch);
-}
+script typedef untyped STRUCT;
 
-void RotateX3D(int angle, int cx, int cy, int cz){
-	for(int i=0; i<SizeOfArray(cx); i++){
-		int y = cy[i];
-		int z = cz[i];
-		
-		cy[i] = y * Cos(angle) - z * Sin(angle);
-		cz[i] = z * Cos(angle) + y * Sin(angle);
+STRUCT script bitmaps
+{
+	bitmap resized; //Used for 3d effects
+	bitmap scrn; //used to draw the screen
+	bitmap fullmap; //the current, full map
+	bitmap fullmap_solid; //solidity of the current map
+	bitmap fullmap_type; //combo types on the current map
+	bitmap fullmap_flag; //combo flags on the current map
+	bitmap fullmap_iflag; //combo inh. flags on the current map
+	
+	bitmap herosprite; //Used to draw the player sprite.
+	bitmap heroBUF; //Used as a buffer for the player sprite. 
+	
+	void Clear()
+	{
+		resized->Clear(0);	
+		scrn->Clear(0);	
+		fullmap->Clear(0);	
+		fullmap_solid->Clear(0);	
+		fullmap_type->Clear(0);	
+		fullmap_flag->Clear(0);	
+		fullmap_iflag->Clear(0);	
+		herosprite->Clear(0);	
+		heroBUF->Clear(0);	
 	}
-}
-
-void RotateY3D(int angle, int cx, int cy, int cz){
-	for(int i=0; i<SizeOfArray(cx); i++){
-		int x = cx[i];
-		int z = cz[i];
+	void Init()
+	{
+		resized = Game->CreateBitmap(256, 256);
+		scrn = Game->CreateBitmap(256, 256);
 		
-		cx[i] = x * Cos(angle) - z * Sin(angle);
-		cz[i] = z * Cos(angle) + x * Sin(angle);
-	}
-}
-
-void RotateZ3D(int angle, int cx, int cy, int cz){
-	for(int i=0; i<SizeOfArray(cx); i++){
-		int x = cx[i];
-		int y = cy[i];
+		fullmap = Game->CreateBitmap(256*16, 176*8);
+		fullmap_solid = Game->CreateBitmap(256*16, 176*8);
+		fullmap_type = Game->CreateBitmap(256*16, 176*8);
+		fullmap_flag = Game->CreateBitmap(256*16, 176*8);
+		fullmap_iflag = Game->CreateBitmap(256*16, 176*8);
 		
-		cx[i] = x * Cos(angle) - y * Sin(angle);
-		cy[i] = y * Cos(angle) + x * Sin(angle);
+		herosprite = Game->CreateBitmap(16,16);
+		heroBUF = Game->CreateBitmap(16,16);
 	}
+	
 }
 
+//The Init script. We initialise bitmaps here. 
 hero script h_init
 {
 	void run()
 	{
+		bitmaps.Init();
 		this->CollDetection = false;
 	}
 }
 
-hero script scroll
+dmapdata script scroll
 {
 	void run()
 	{
@@ -56,43 +75,32 @@ hero script scroll
 		int lsteps[2]={1,2};
 		// bitmap image1 = Game->AllocateBitmap();
 		// image1->Read(0,"test.png");
+		bitmaps.Clear();
 		
-		bitmap resized = Game->CreateBitmap(256, 256);
 		
-		bitmap scrn = Game->CreateBitmap(256, 256);
-		
-		bitmap fullmap = Game->CreateBitmap(256*16, 176*8);
-		bitmap fullmap_solid = Game->CreateBitmap(256*16, 176*8);
-		bitmap fullmap_type = Game->CreateBitmap(256*16, 176*8);
-		bitmap fullmap_flag = Game->CreateBitmap(256*16, 176*8);
-		bitmap fullmap_iflag = Game->CreateBitmap(256*16, 176*8);
-		
-		bitmap herosprite = Game->CreateBitmap(16,16);
-		bitmap heroBUF = Game->CreateBitmap(16,16);
-		
-		TraceS("Bitmap Solidity Pointer is: \n"); Trace(fullmap_solid);
+		TraceS("Bitmap Solidity Pointer is: \n"); Trace(bitmaps.fullmap_solid);
 		
 		for(int i=0; i<128; i++)
 		{
-			fullmap->DrawScreen(6, 1, i, (i%16)*256, Floor(i/16)*176, 0);
+			bitmaps.fullmap->DrawScreen(6, 1, i, (i%16)*256, Floor(i/16)*176, 0);
 		}
 		
 		for(int i=0; i<128; i++)
 		{
-			fullmap_solid->DrawScreenSolid(0, 1, i, (i%16)*256, Floor(i/16)*176, 0);
+			bitmaps.fullmap_solid->DrawScreenSolid(0, 1, i, (i%16)*256, Floor(i/16)*176, 0);
 		}
-		fullmap_solid->Write(0, "dqmap_solid.png", true);
+		bitmaps.fullmap_solid->Write(0, "dqmap_solid.png", true);
 		for(int i=0; i<128; i++)
 		{
-			fullmap_type->DrawScreenComboTypes(6, 1, i, (i%16)*256, Floor(i/16)*176, 0);
-		}
-		for(int i=0; i<128; i++)
-		{
-			fullmap_flag->DrawScreenComboFlags(6, 1, i, (i%16)*256, Floor(i/16)*176, 0);
+			bitmaps.fullmap_type->DrawScreenComboTypes(6, 1, i, (i%16)*256, Floor(i/16)*176, 0);
 		}
 		for(int i=0; i<128; i++)
 		{
-			fullmap_iflag->DrawScreenComboIFlags(6, 1, i, (i%16)*256, Floor(i/16)*176, 0);
+			bitmaps.fullmap_flag->DrawScreenComboFlags(6, 1, i, (i%16)*256, Floor(i/16)*176, 0);
+		}
+		for(int i=0; i<128; i++)
+		{
+			bitmaps.fullmap_iflag->DrawScreenComboIFlags(6, 1, i, (i%16)*256, Floor(i/16)*176, 0);
 		}
 		
 		//scrn->Rectangle(6, 0, 0, 255, 175, 0x00, 1, 0, 0, 0, true, 128);
@@ -100,23 +108,23 @@ hero script scroll
 		
 		bitmap b = Game->CreateBitmap(256, 256);
 		
-		int pPosX, int pPosY;
+		int pPosX, pPosY;
 		int xPos; int yPos;
 		while(1)
 		{
 			++frame;
-			this->X = ( 16*8 )-8;
-			this->Y = (16*7.5)-56-8;
+			Link->X = ( 16*8 )-8;
+			Link->Y = (16*7.5)-56-8;
 			//LogPrint("Link->Tile is: %d \n", Link->Tile);
-			herosprite->Clear(0);
-			herosprite->FastTile(6, 0,0,Link->Tile, 6, 128);
+			bitmaps.herosprite->Clear(0);
+			bitmaps.herosprite->FastTile(6, 0,0,Link->Tile, 6, 128);
 			
 			if(Link->InputLeft)
 			{
-				LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Link->X, yPos+Link->Y+56));
-				LogPrint("Link->X is: %d \n", Link->X);
-				LogPrint("Link->Y is: %d \n", Link->Y);
-				if (!(Graphics->GetPixel(fullmap_solid,xPos+Link->X - ( ((frame&1)) ? lsteps[0] : lsteps[1] ), yPos+Link->Y+56+8) ) )
+				//LogPrint("Solidity is: %f \n", Graphics->GetPixel(bitmaps.fullmap_solid,xPos+Link->X, yPos+Link->Y+56));
+				//LogPrint("Link->X is: %d \n", Link->X);
+				//LogPrint("Link->Y is: %d \n", Link->Y);
+				if (!(Graphics->GetPixel(bitmaps.fullmap_solid,xPos+Link->X - ( ((frame&1)) ? lsteps[0] : lsteps[1] ), yPos+Link->Y+56+8) ) )
 				//LogPrint("xPos is: %d \n", xPos);
 					//xPos-=5;
 					xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
@@ -124,10 +132,10 @@ hero script scroll
 			else if(Link->InputRight)
 			{
 				//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Link->X, yPos+Link->Y+56+8));
-				LogPrint("Link->X is: %d \n", Link->X);
-				LogPrint("Link->Y is: %d \n", Link->Y);
+				//LogPrint("Link->X is: %d \n", Link->X);
+				//LogPrint("Link->Y is: %d \n", Link->Y);
 				//LogPrint("xPos is: %d \n", xPos);
-				if (!(Graphics->GetPixel(fullmap_solid,xPos+Link->X + 16 + ( ((frame&1)) ? lsteps[0] : lsteps[1] ), yPos+Link->Y+56+8) ) )
+				if (!(Graphics->GetPixel(bitmaps.fullmap_solid,xPos+Link->X + 16 + ( ((frame&1)) ? lsteps[0] : lsteps[1] ), yPos+Link->Y+56+8) ) )
 					//xPos+=5;
 					xPos += ( ((frame&1)) ? lsteps[0] : lsteps[1] );
 			}
@@ -137,7 +145,7 @@ hero script scroll
 				//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Link->X, yPos+Link->Y+56));
 				//LogPrint("yPos is: %d \n", yPos);
 			
-				if (!(Graphics->GetPixel(fullmap_solid,xPos+Link->X+8, yPos+Link->Y + 56 - ( ((frame&1)) ? lsteps[0] : lsteps[1] )) ) )
+				if (!(Graphics->GetPixel(bitmaps.fullmap_solid,xPos+Link->X+8, yPos+Link->Y + 56 - ( ((frame&1)) ? lsteps[0] : lsteps[1] )) ) )
 					//yPos -= 5;
 					yPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
 			}
@@ -145,7 +153,7 @@ hero script scroll
 			{
 				//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Link->X, yPos+Link->Y+56));
 				//LogPrint("yPos is: %d \n", yPos);
-				if (!(Graphics->GetPixel(fullmap_solid,xPos+Link->X+8, 16+yPos+Link->Y+56 + ( ((frame&1)) ? lsteps[0] : lsteps[1] )) ))
+				if (!(Graphics->GetPixel(bitmaps.fullmap_solid,xPos+Link->X+8, 16+yPos+Link->Y+56 + ( ((frame&1)) ? lsteps[0] : lsteps[1] )) ))
 					//yPos+=5;
 					yPos += ( ((frame&1)) ? lsteps[0] : lsteps[1] );
 			}
@@ -153,19 +161,74 @@ hero script scroll
 			xPos = Clamp(xPos, 0, 256*15);
 			yPos = Clamp(yPos, 0, 176*7);
 			
-			scrn->BlitTo(6, fullmap, xPos, yPos, 256, 256, 0, 0, resized->Width, resized->Height, 0, 0, 0, 0, 0, false);
+			bitmaps.scrn->BlitTo(6, bitmaps.fullmap, xPos, yPos, 256, 256, 0, 0, bitmaps.resized->Width, bitmaps.resized->Height, 0, 0, 0, 0, 0, false);
 			
 			int sW = 128;
 			int sH = 128;
 			
-			scrn->Blit(7, -2, 0, 0, 256, 256, 0, -56, 256, 256, 0, 0, 0, 0, 0, false);
+			bitmaps.scrn->Blit(7, -2, 0, 0, 256, 256, 0, -56, 256, 256, 0, 0, 0, 0, 0, false);
 			
-			herosprite->Blit(7, -2, 0, 0, 16, 16, this->X, this->Y, 16, 16, 0, 0, 0, (( this->Dir == DIR_LEFT ) ? BITDX_VFLIP : 0), 0, true);
+			bitmaps.herosprite->Blit(7, -2, 0, 0, 16, 16, Link->X, Link->Y, 16, 16, 0, 0, 0, (( Link->Dir == DIR_LEFT ) ? BITDX_VFLIP : 0), 0, true);
 			
 			
 			NoAction();
 			
 			Waitframe();
 		}
+	}
+}
+
+//Drawing Utilities
+int VectorX3D(int distance, int yaw, int pitch)
+{
+	return distance*Sin(pitch)*Cos(yaw);
+}
+
+int VectorY3D(int distance, int yaw, int pitch)
+{
+	return distance*Sin(pitch)*Sin(yaw);
+}
+
+int VectorZ3D(int distance, int yaw, int pitch)
+{
+	return distance*Cos(pitch);
+}
+
+void RotateX3D(int angle, int cx, int cy, int cz)
+{
+	int sz = SizeOfArray(cx);
+	for(int i=0; sz; ++i)
+	{
+		int y = cy[i];
+		int z = cz[i];
+		
+		cy[i] = y * Cos(angle) - z * Sin(angle);
+		cz[i] = z * Cos(angle) + y * Sin(angle);
+	}
+}
+
+void RotateY3D(int angle, int cx, int cy, int cz)
+{
+	int sz = SizeOfArray(cx);
+	for(int i=0; i < sz; ++i)
+	{
+		int x = cx[i];
+		int z = cz[i];
+		
+		cx[i] = x * Cos(angle) - z * Sin(angle);
+		cz[i] = z * Cos(angle) + x * Sin(angle);
+	}
+}
+
+void RotateZ3D(int angle, int cx, int cy, int cz)
+{
+	int sz = SizeOfArray(cx);
+	for(int i=0; i < sz; ++i )
+	{
+		int x = cx[i];
+		int y = cy[i];
+		
+		cx[i] = x * Cos(angle) - y * Sin(angle);
+		cy[i] = y * Cos(angle) + x * Sin(angle);
 	}
 }
