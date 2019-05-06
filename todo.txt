@@ -27,6 +27,9 @@ Random encounters. We need to read screen enemy lists from the data (current scr
 	
 	We also draw the encounter menu at this time, and run the encounter. 
 	
+TOWNE/CASTLE: 
+
+DUNGEON: 
 
 ZELDA ENGINE
 ------------
