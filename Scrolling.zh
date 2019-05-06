@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// v0.5.1                 ///
+/// v0.5.2                 ///
 /// 6th May, 2019          ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -18,6 +18,8 @@
 // v0.5.0 : Added a virtual coordinate system, and methods for getting accurate screen IDs, and enemy lists.
 //        : Added STRUCT mapInfo, and STRUCT encounter.
 // v0.5.1 : Added additional encounter system code.
+// v0.5.2 : Added check for slow walk combos. 
+
 
 script typedef untyped STRUCT;
 
@@ -313,11 +315,11 @@ dmapdata script scroll
 				//LogPrint("Solidity is: %f \n", Graphics->GetPixel(bitmaps.fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
 				//LogPrint("Hero->X is: %d \n", Hero->X);
 				//LogPrint("Hero->Y is: %d \n", Hero->Y);
-				if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X - ( ((frame&1)) ? lsteps[0] : lsteps[1] ), yPos+Hero->Y+56+8) ) )
+				if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] )), yPos+Hero->Y+56+8) ) )
 				//LogPrint("xPos is: %d \n", xPos);
 					//xPos-=5;
 				{
-					int temp_x_pos = xPos - ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+					int temp_x_pos = xPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
 					//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
 					if ( temp_x_pos >= 0 && temp_x_pos <= (256*15) ) //Might need to extend the <= value out a bit
 					{
@@ -333,10 +335,10 @@ dmapdata script scroll
 				//LogPrint("Hero->X is: %d \n", Hero->X);
 				//LogPrint("Hero->Y is: %d \n", Hero->Y);
 				//LogPrint("xPos is: %d \n", xPos);
-				if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X + 16 + ( ((frame&1)) ? lsteps[0] : lsteps[1] ), yPos+Hero->Y+56+8) ) )
+				if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X + 16 + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] )), yPos+Hero->Y+56+8) ) )
 				{
 					//xPos+=5;
-					int temp_x_pos = xPos + ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+					int temp_x_pos = xPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
 					//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
 					if ( temp_x_pos >= 0 && temp_x_pos <= (256*15) )  //Might need to extend the <= value out a bit
 					{
@@ -352,9 +354,9 @@ dmapdata script scroll
 				//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
 				//LogPrint("yPos is: %d \n", yPos);
 			
-				if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, yPos+Hero->Y + 56 - ( ((frame&1)) ? lsteps[0] : lsteps[1] )) ) )
+				if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, yPos+Hero->Y + 56 - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ))) ) )
 				{
-					int temp_y_pos = yPos - ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+					int temp_y_pos = yPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
 					//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
 					if ( temp_y_pos >= 0 && temp_y_pos <= (176*7) )  //Might need to extend the <= value out a bit
 					{
@@ -368,10 +370,10 @@ dmapdata script scroll
 			{
 				//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
 				//LogPrint("yPos is: %d \n", yPos);
-				if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, 16+yPos+Hero->Y+56 + ( ((frame&1)) ? lsteps[0] : lsteps[1] )) ))
+				if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, 16+yPos+Hero->Y+56 + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ))) ))
 				{
 					//yPos+=5;
-					int temp_y_pos = yPos + ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+					int temp_y_pos = yPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
 					//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
 					if ( temp_y_pos >= 0 && temp_y_pos <= (176*7) )  //Might need to extend the <= value out a bit
 					{
@@ -401,26 +403,26 @@ dmapdata script scroll
 			Waitframe();
 		}
 	}
-	bool getComboSolid()
-	{
-		return (Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X + 8, yPos+Hero->Y+56+8));
-	}
+	//bool getComboSolid()
+	//{
+	//	return (Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X + 8, yPos+Hero->Y+56+8));
+	//}
 	//int getComboSolidity()
 	//{
 	//	return (Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X + 8, yPos+Hero->Y+56+8)*10000);
 	//}
-	int getComboType()
-	{
-		return (Graphics->GetPixel(bitmaps.overscan_type,xPos+Hero->X + 8, yPos+Hero->Y+56+8) * 10000);
-	}
-	int getComboFlag()
-	{
-		return (Graphics->GetPixel(bitmaps.overscan_flag,xPos+Hero->X + 8, yPos+Hero->Y+56+8) * 10000);
-	}
-	int getComboIFlag()
-	{
-		return (Graphics->GetPixel(bitmaps.overscan_iflag,xPos+Hero->X + 8, yPos+Hero->Y+56+8) * 10000);
-	}
+	//int getComboType()
+	//{
+	//	return (Graphics->GetPixel(bitmaps.overscan_type,xPos+Hero->X + 8, yPos+Hero->Y+56+8) * 10000);
+	//}
+	//int getComboFlag()
+	//{
+	//	return (Graphics->GetPixel(bitmaps.overscan_flag,xPos+Hero->X + 8, yPos+Hero->Y+56+8) * 10000);
+	//}
+	//int getComboIFlag()
+	//{
+	//	return (Graphics->GetPixel(bitmaps.overscan_iflag,xPos+Hero->X + 8, yPos+Hero->Y+56+8) * 10000);
+	//}
 }
 
 //Drawing Utilities
