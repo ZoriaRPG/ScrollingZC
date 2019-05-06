@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// v0.4.0                 ///
+/// v0.5.0                 ///
 /// 6th May, 2019          ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -15,6 +15,8 @@
 // v0.3.2 : Remove Clamp() and constrain movement inside the movement code. 
 // v0.4.0 : Added OVERSCAN bitmaps so that the player is not as constrained, but he is still fixed in the centre of the screen.
 //        : Changed Link-> pointer use to Hero->
+// v0.5.0 : Added a virtual coordinate system, and methods for getting accurate screen IDs, and enemy lists.
+//        : Added STRUCT mapInfo, and STRUCT encounter.
 
 
 script typedef untyped STRUCT;
@@ -106,6 +108,64 @@ STRUCT script bitmaps
 	
 }
 
+STRUCT script mapInfo
+{
+	int curMap;
+	int curScreen;
+	int ScreenAt(int x, int y)
+	{
+		int scr, sc_x, sc_y;
+		//Trace(x); Trace(y);
+		for ( int q = 256; q < x; q += 256 ) 
+		{
+			++sc_x;
+			//Trace(sc_x);
+		}
+		for ( int q = 176; q < y; q += 176 ) 
+		{
+			++sc_y;
+			//Trace(sc_y);
+		}
+		scr = sc_y * 16;
+		scr += sc_x;
+	
+		return scr;
+	}
+	int getEnemy()
+	{
+		if ( !mapInfo.curMap ) return 0; 
+		mapdata md = Game->LoadMapData(mapInfo.curMap, mapInfo.curScreen);
+		int ids[10]; int id = 0; int temp;
+		for ( int q = 0; q < 10; ++q ) 
+		{
+			ids[q] = md->Enemy[q];
+			if ( ids[q] ) temp = ids[q];
+		}
+		if ( !temp ) return 0; //no enemies on this virtual screen, so return early.
+		//Get a valid ID of an enemy and return it at random.
+		do
+		{
+			id = ids[Rand(10)];
+		} until(id);
+		
+		return id;
+	}
+}
+
+STRUCT script encounter
+{
+	bool init(int xpos, int ypos) //xpos and ypos are the current bitmap coordinates
+	{
+		mapInfo.curScreen = mapInfo.ScreenAt(xpos,ypos);
+		int enem_id = mapInfo.getEnemy();
+		if ( !enem_id ) return false;
+		//start the encounter here.
+		
+	}
+	
+	
+}
+
 //The Init script. We initialise bitmaps here. 
 hero script h_init
 {
@@ -120,6 +180,7 @@ dmapdata script scroll
 {
 	void run()
 	{
+		mapInfo.curMap = this->Map;
 		int frame = 0;
 		int lsteps[2]={1,2};
 		// bitmap image1 = Game->AllocateBitmap();
@@ -207,6 +268,11 @@ dmapdata script scroll
 			bitmaps.herosprite->FastTile(6, 0,0,Hero->Tile, 6, 128);
 			
 			if ( Hero->PressEx4 ) bitmaps.Save();
+			if ( Hero->PressEx3 )
+			{
+				LogPrint("Current Virtual Screen: %d \n", mapInfo.ScreenAt(xPos, yPos));
+				LogPrint("Current Virtual Map: %d \n", mapInfo.curMap);
+			}
 			if(Hero->InputLeft)
 			{
 				//LogPrint("Solidity is: %f \n", Graphics->GetPixel(bitmaps.fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
