@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// v0.5.3                 ///
+/// v0.6.0                 ///
 /// 6th May, 2019          ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -22,9 +22,339 @@
 // v0.5.3 : Added mock encounter visual effects.
 //        : Don't draw the player sprite, or allow scrolling during an encounter.
 // v0.5.4 : Changed rate on slow walk tiles (hills) to be less sluggish.
+// v0.6.0 : Begin adding menus.
 
 
 script typedef untyped STRUCT;
+typedef const int def;
+
+STRUCT script vital
+	{
+		enum { level, hp, mp, gold, exp, str, dex, wis, con, cha, mind, soul, luck, last };
+		int stat[last];
+		
+		
+	}
+	
+/*
+	
+void Blit	( int layer, 
+			bitmap target, 
+			int source_x, int source_y, int source_w, int source_h, 
+			int dest_x, int dest_y, int dest_w, int dest_h, 
+			float rotation, int cx, int cy, int mode, int lit,  bool mask);
+			
+ * BLITS THE BITMAP ON POINTER 'b' TO A TARGET BITMAP. 
+ * As DrawBitmapEx(), except that it draws FROM an initialised bitmap pointer,
+ * TO a target bitmap, which may be a user-created bitmap, or it may be the screen.
+ * To draw to the screen, or to one of the old system bitmaps, use the RT_* value from std_constants.zh
+ *	as the argument to 'bitmap target'.
+ * To draw to a user created bitmap, pass its pointer to 'bitmap target'.
+*/
+
+namespace menu
+{
+	enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, kerning, background, width, height, messages, curMsg, last };
+	
+	
+	
+	namespace stats
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, kerning, background, width, height, messages, curMsg, last };
+	
+		def MAX_MESSAGES = 10;
+		def MAX_VALUES = 10;
+		bitmap bitty;
+		def bWidth = 64;
+		def bHeight = 96;
+		def X = 8;
+		def Y = 16;
+		def FONT = FONT_FF;
+		def FONT_H = 16;
+		def KERN = 4;
+		def BG = 0x0F;
+		def COLOUR = 0x01;
+		int data[last];
+		int values[MAX_VALUES]; //stat values
+		int msg[MAX_MESSAGES]; //menu text lines
+		
+		void init()
+		{
+			bitty = Game->CreateBitmap(bWidth,bHeight);
+			setProperties({1, X, Y, -1, -1, -1, COLOUR, FONT, FONT_H, KERN, BG, bWidth, bHeight, msg, -1});
+		}
+		void draw()
+		{
+			bitty->Blit(7, bitmaps.scrn, 0, 0, bitty->Width, bitty->Height, data[x], data[y], bitty->Width, bitty->Height, 0,0,0,0,0,false); 
+		}
+		void setCurMessage(int m)
+		{
+			msg[data[curMsg]] = m;
+			++data[curMsg];
+		}
+		void setMessages(int first, int num)
+		{
+			//messagedata md;
+			for(int q = 0; q < num; ++q )
+			{
+				//md = Game->LoadMessageData(q+first);
+				msg[data[curMsg]] = first+q;
+				++data[data[curMsg]];
+			}
+		}
+		void set(int p, int v)
+		{
+			if ( p < 0 || p > (last-1) ) 
+			{
+				LogPrint("Invalid menu property [ %d ", p);
+				LogPrint("] passed to set(). Min value is 0, max is %d. \n", last-1);
+				return;
+			}
+			data[p] = v;
+		}
+		void setMessage(int mID, int msg)
+		{
+			if ( mID < 0 || mID > (MAX_MESSAGES-1) ) 
+			{
+				LogPrint("Invalid message index ID [ %d ", mID);
+				LogPrint("] passed to setMessage. Min index is 0, max is %d. \n", (MAX_MESSAGES-1));
+				return;
+			}
+			msg[mID] = msg;
+		}
+		void setMessages(int ptr)
+		{
+			if ( SizeOfArray(ptr) != MAX_MESSAGES ) 
+			{
+				LogPrint("Array passed to setMenuProperties() is the wrong size [ %d ", SizeOfArray(ptr));
+				LogPrint("]. \n The array must be a size of [ %d ", last);
+				LogPrint("] %s \n", "Aborting.");
+				return;
+			}
+			for ( int q = 0; q < last; ++q ) 
+			{
+				msg[q] = ptr[q];
+			}
+		}
+		void setProperties(int ptr)
+		{
+			if ( SizeOfArray(ptr) != last ) 
+			{
+				LogPrint("Array passed to setMenuProperties() is the wrong size [ %d ", SizeOfArray(ptr));
+				LogPrint("]. \n The array must be a size of [ %d ", last);
+				LogPrint("] %s \n", "Aborting.");
+				return;
+			}
+			for ( int q = 0; q < last; ++q ) 
+			{
+				data[q] = ptr[q];
+			}
+			
+		}
+		void setMenuProperties(int m_valid, int m_x, int m_y, int m_selection, int m_numOptions, int m_colour, int m_font, int m_font_height, int m_kerning,
+			int m_background, int m_width, int m_height, int m_messages, int m_curMsg)
+		{
+			data[valid] = m_valid;
+			data[selection] = m_selection;
+			data[numOptions] = m_numOptions;
+			data[colour] = m_colour;
+			data[font] = m_font;
+			data[font_height] = m_font_height; 
+			data[kerning] = m_kerning;
+			data[background] = m_background;
+			data[x] = m_x;
+			data[y] = m_y;
+			data[width] = m_width;
+			data[height] = m_height;
+			data[messages] = m_messages;
+			data[curMsg] = m_curMsg;
+			
+		}
+		
+	}
+	namespace battle
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init()
+		{
+			
+		}
+		
+	}
+	namespace command
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init()
+		{
+			
+		}
+		
+	}
+	namespace dlg
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init()
+		{
+			
+		}
+		
+	}
+	
+	namespace inventory
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init()
+		{
+			
+		}
+		
+	}
+	namespace shop
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init()
+		{
+			
+		}
+		
+	}
+	namespace inn
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init()
+		{
+			
+		}
+		
+	}
+	namespace spell
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init()
+		{
+			
+		}
+		
+	}
+	void init()
+	{
+		stats::init();
+		battle::init();
+		command::init();
+		dlg::init();
+		inventory::init();
+		shop::init();
+		inn::init();
+		spell::init();
+	}
+	
+	/*
+	void setCurMessage(int menu, int m)
+	{
+		menu::msg[menu::data[curMsg]] = m;
+		++menu::data[curMsg];
+	}
+	void setMessages(int menu, int first, int num)
+	{
+		//messagedata md;
+		for(int q = 0; q < num; ++q )
+		{
+			//md = Game->LoadMessageData(q+first);
+			menu::msg[menu::data[curMsg]] = first+q;
+			++menu::data[menu::data[curMsg]];
+		}
+	}
+	void set(int menu, int p, int v)
+	{
+		if ( p < 0 || p > (last-1) ) 
+		{
+			LogPrint("Invalid menu property [ %d ", p);
+			LogPrint("] passed to set(). Min value is 0, max is %d. \n", last-1);
+			return;
+		}
+		menu::data[p] = v;
+	}
+	void setMessage(int menu, int mID, int msg)
+	{
+		if ( mID < 0 || mID > (MAX_MESSAGES-1) ) 
+		{
+			LogPrint("Invalid message index ID [ %d ", p);
+			LogPrint("] passed to setMessage. Min index is 0, max is %d. \n", (menu::MAX_MESSAGES-1));
+			return;
+		}
+		menu::msg[mID] = msg;
+	}
+	void setMessages(int menu, int ptr)
+	{
+		if ( SizeOfArray(ptr) != MAX_MESSAGES ) 
+		{
+			LogPrint("Array passed to setMenuProperties() is the wrong size [ %d ", SizeOfArray(ptr));
+			LogPrint("]. \n The array must be a size of [ %d ", last);
+			LogPrint("] %s \n", "Aborting.");
+			return;
+		}
+		for ( int q = 0; q < last; ++q ) 
+		{
+			menu::msg[q] = ptr[q];
+		}
+	}
+	void setProperties(int menu, int ptr)
+	{
+		if ( SizeOfArray(ptr) != last ) 
+		{
+			LogPrint("Array passed to setMenuProperties() is the wrong size [ %d ", SizeOfArray(ptr));
+			LogPrint("]. \n The array must be a size of [ %d ", last);
+			LogPrint("] %s \n", "Aborting.");
+			return;
+		}
+		for ( int q = 0; q < last; ++q ) 
+		{
+			menu::data[q] = ptr[q];
+		}
+		
+	}
+	void setMenuProperties(int menu, int m_valid, int m_x, int m_y, int m_selection, int m_numOptions, int m_colour, int m_font, int m_font_height, int m_kerning,
+		int m_background, int m_width, int m_height, int m_messages, int m_curMsg)
+	{
+		menu::data[valid] = m_valid;
+		menu::data[selection] = m_selection;
+		menu::data[numOptions] = m_numOptions;
+		menu::data[colour] = m_colour;
+		menu::data[font] = m_font;
+		menu::data[font_height] = m_font_height; 
+		menu::data[kerning] = m_kerning;
+		menu::data[background] = m_background;
+		menu::data[x] = m_x;
+		menu::data[y] = m_y;
+		menu::data[width] = m_width;
+		menu::data[height] = m_height;
+		menu::data[messages] = m_messages;
+		menu::data[curMsg] = m_curMsg;
+		
+	}
+	*/
+}
 
 STRUCT script bitmaps
 {
