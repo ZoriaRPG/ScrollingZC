@@ -1,28 +1,18 @@
-Track the current screen IDs on a given map.
-	We will need these to read enemy lists, and screen item data,
-		screen sctrings and other roomdata.
-
-Allow the player sprite moving out of the centre of the camera, when the bitmap can no longer pan.
-	This will require a refactor that locks the player to specific coordinates
-	only when panning is legal, and thus, we need CanPan() and similar.
-	
-	The current method locks the centre of the camera ont he player, so that 
-	needs to be rewritten for a fixed centre. 
 	
 RPG ENGINE
 ----------
 
-Terrain effects. Forests have higher encounter rates, mountains slow the player down.
+Terrain effects. Forests have higher encounter rates, /*mountains slow the player down*/.
 	Swamps hurt the player. 
 	
 Fix solidity of forest tiles. 
 
 Status menus. 
 	
-Random encounters. We need to read screen enemy lists from the data (current screen slices)
-	to determine what encounters can happen. 
+Random encounters. We need to /*read screen enemy lists from the data (current screen slices)
+	to determine what encounters can happen. */
 
-	When an encounte roccurs, we draw a new bitmap to the screen with a visual
+	When an encounter occurs, we draw a new bitmap to the screen with a visual
 	effect (e.g..3d spin) with the graphical tiles of that enemy.
 	
 	We also draw the encounter menu at this time, and run the encounter. 
