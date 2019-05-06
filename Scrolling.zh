@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// v0.5.0                 ///
+/// v0.5.1                 ///
 /// 6th May, 2019          ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -17,7 +17,7 @@
 //        : Changed Link-> pointer use to Hero->
 // v0.5.0 : Added a virtual coordinate system, and methods for getting accurate screen IDs, and enemy lists.
 //        : Added STRUCT mapInfo, and STRUCT encounter.
-
+// v0.5.1 : Added additional encounter system code.
 
 script typedef untyped STRUCT;
 
@@ -150,6 +150,27 @@ STRUCT script mapInfo
 		
 		return id;
 	}
+	//Get information about combos on the maps. 
+	bool comboS(int xpos, int ypos)
+	{
+		return (Graphics->GetPixel(bitmaps.overscan_solid,xpos+Hero->X + 8, ypos+Hero->Y+56+8));
+	}
+	//int getComboSolidity()
+	//{
+	//	return (Graphics->GetPixel(bitmaps.overscan_solid,xpos+Hero->X + 8, ypos+Hero->Y+56+8)*10000);
+	//}
+	int comboT(int xpos, int ypos)
+	{
+		return (Graphics->GetPixel(bitmaps.overscan_type,xpos+Hero->X + 8, ypos+Hero->Y+56+8) * 10000);
+	}
+	int comboF(int xpos, int ypos)
+	{
+		return (Graphics->GetPixel(bitmaps.overscan_flag,xpos+Hero->X + 8, ypos+Hero->Y+56+8) * 10000);
+	}
+	int comboI(int xpos, int ypos)
+	{
+		return (Graphics->GetPixel(bitmaps.overscan_iflag,xpos+Hero->X + 8, ypos+Hero->Y+56+8) * 10000);
+	}
 }
 
 STRUCT script encounter
@@ -160,6 +181,9 @@ STRUCT script encounter
 		int enem_id = mapInfo.getEnemy();
 		if ( !enem_id ) return false;
 		//start the encounter here.
+		//Mock encounter
+		LogPrint("Mock Encounter got an enemy ID of %d \n", enem_id);
+		return true;
 		
 	}
 	
@@ -251,6 +275,16 @@ dmapdata script scroll
 		
 		bitmaps.fullmap_solid->Blit(6, bitmaps.overscan_solid, 0, 0, bitmaps.fullmap_solid->Width, bitmaps.fullmap_solid->Height, 256, 176, 
 			bitmaps.fullmap_solid->Width, bitmaps.fullmap_solid->Height,0,0,0,0,0,false);
+		
+		
+		bitmaps.fullmap_type->Blit(6, bitmaps.overscan_type, 0, 0, bitmaps.fullmap_type->Width, bitmaps.fullmap_type->Height, 256, 176, 
+			bitmaps.fullmap_type->Width, bitmaps.fullmap_type->Height,0,0,0,0,0,false);
+		
+		bitmaps.fullmap_flag->Blit(6, bitmaps.overscan_flag, 0, 0, bitmaps.fullmap_flag->Width, bitmaps.fullmap_flag->Height, 256, 176, 
+			bitmaps.fullmap_flag->Width, bitmaps.fullmap_flag->Height,0,0,0,0,0,false);
+		
+		bitmaps.fullmap_iflag->Blit(6, bitmaps.overscan_iflag, 0, 0, bitmaps.fullmap_iflag->Width, bitmaps.fullmap_iflag->Height, 256, 176, 
+			bitmaps.fullmap_iflag->Width, bitmaps.fullmap_iflag->Height,0,0,0,0,0,false);
 		//scrn->Rectangle(6, 0, 0, 255, 175, 0x00, 1, 0, 0, 0, true, 128);
 		//scrn->DrawLayer(6, 1, 0x01, 0, 0, 0, 0, 128);
 		
@@ -268,6 +302,7 @@ dmapdata script scroll
 			bitmaps.herosprite->FastTile(6, 0,0,Hero->Tile, 6, 128);
 			
 			if ( Hero->PressEx4 ) bitmaps.Save();
+			if ( Hero->PressEx2 ) encounter.init(xPos,yPos);
 			if ( Hero->PressEx3 )
 			{
 				LogPrint("Current Virtual Screen: %d \n", mapInfo.ScreenAt(xPos, yPos));
@@ -365,6 +400,26 @@ dmapdata script scroll
 			
 			Waitframe();
 		}
+	}
+	bool getComboSolid()
+	{
+		return (Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X + 8, yPos+Hero->Y+56+8));
+	}
+	//int getComboSolidity()
+	//{
+	//	return (Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X + 8, yPos+Hero->Y+56+8)*10000);
+	//}
+	int getComboType()
+	{
+		return (Graphics->GetPixel(bitmaps.overscan_type,xPos+Hero->X + 8, yPos+Hero->Y+56+8) * 10000);
+	}
+	int getComboFlag()
+	{
+		return (Graphics->GetPixel(bitmaps.overscan_flag,xPos+Hero->X + 8, yPos+Hero->Y+56+8) * 10000);
+	}
+	int getComboIFlag()
+	{
+		return (Graphics->GetPixel(bitmaps.overscan_iflag,xPos+Hero->X + 8, yPos+Hero->Y+56+8) * 10000);
 	}
 }
 
