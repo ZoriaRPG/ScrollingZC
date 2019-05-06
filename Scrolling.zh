@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// v0.5.2                 ///
+/// v0.5.3                 ///
 /// 6th May, 2019          ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -19,6 +19,8 @@
 //        : Added STRUCT mapInfo, and STRUCT encounter.
 // v0.5.1 : Added additional encounter system code.
 // v0.5.2 : Added check for slow walk combos. 
+// v0.5.3 : Added mock encounter visual effects.
+//        : Don't draw the player sprite, or allow scrolling during an encounter.
 
 
 script typedef untyped STRUCT;
@@ -46,6 +48,8 @@ STRUCT script bitmaps
 	//Sprite bitmaps. 
 	bitmap herosprite; //Used to draw the player sprite.
 	bitmap heroBUF; //Used as a buffer for the player sprite. 
+	bitmap enemyQuad;
+	bitmap enemyBUF;
 	
 	void Clear()
 	{
@@ -63,7 +67,9 @@ STRUCT script bitmaps
 		overscan_iflag->Clear(0);	
 		border->Clear(0);	
 		herosprite->Clear(0);	
-		heroBUF->Clear(0);	
+		heroBUF->Clear(0);
+		enemyQuad->Clear(0);
+		enemyBUF->Clear(0);		
 	}
 	void Init()
 	{
@@ -85,6 +91,9 @@ STRUCT script bitmaps
 		
 		herosprite = Game->CreateBitmap(16,16);
 		heroBUF = Game->CreateBitmap(16,16);
+		
+		enemyQuad = Game->CreateBitmap(128,96);
+		enemyBUF = Game->CreateBitmap(128,96);
 	}
 	void Save()
 	{
@@ -114,6 +123,7 @@ STRUCT script mapInfo
 {
 	int curMap;
 	int curScreen;
+	bool canScroll = true;
 	int ScreenAt(int x, int y)
 	{
 		int scr, sc_x, sc_y;
@@ -177,16 +187,45 @@ STRUCT script mapInfo
 
 STRUCT script encounter
 {
+	int terrain_type; int valid;
+	enum { terFIELD, terFOREST, terHILL, terSWAMP, terDUNGEON, terVILL, terCASTLE, terDARK, terLAST };
 	bool init(int xpos, int ypos) //xpos and ypos are the current bitmap coordinates
 	{
+		terrain_type = mapInfo.comboI(xpos,ypos); //Inh flag for terrain type.
+		//We will use this for backgrounds on the enemy quads. 
 		mapInfo.curScreen = mapInfo.ScreenAt(xpos,ypos);
 		int enem_id = mapInfo.getEnemy();
 		if ( !enem_id ) return false;
 		//start the encounter here.
+		valid = enem_id;
+		mapInfo.canScroll = false;
+		
 		//Mock encounter
 		LogPrint("Mock Encounter got an enemy ID of %d \n", enem_id);
 		return true;
 		
+	}
+	void draw()
+	{
+		bitmaps.enemyQuad->Clear(0);
+		bitmaps.enemyBUF->Clear(0);
+		switch(terrain_type)
+		{
+			//might need to load a palette, too?
+			case terFIELD: bitmaps.enemyBUF->Read(0, "dq_terr_field.png"); break;
+			case terFOREST: bitmaps.enemyBUF->Read(0, "dq_terr_forest.png"); break;
+			case terHILL: bitmaps.enemyBUF->Read(0, "dq_terr_hill.png"); break;
+			case terSWAMP: bitmaps.enemyBUF->Read(0, "dq_terr_swamp.png"); break;
+			case terDUNGEON: bitmaps.enemyBUF->Read(0, "dq_terr_dungeon.png"); break;
+			case terVILL: bitmaps.enemyBUF->Read(0, "dq_terr_towne.png"); break;
+			case terCASTLE: bitmaps.enemyBUF->Read(0, "dq_terr_castle.png"); break;
+			case terDARK: 
+			default: bitmaps.enemyBUF->Read(0, "dq_terr_darkness.png"); break;
+		}
+		
+		
+		bitmaps.enemyBUF->Blit(7, bitmaps.scrn, 0, 0, bitmaps.enemyBUF->Width, bitmaps.enemyBUF->Height, 64, 64, 
+				bitmaps.enemyBUF->Width, bitmaps.enemyBUF->Height,0,0,0,0,0,false);
 	}
 	
 	
@@ -304,98 +343,103 @@ dmapdata script scroll
 			bitmaps.herosprite->FastTile(6, 0,0,Hero->Tile, 6, 128);
 			
 			if ( Hero->PressEx4 ) bitmaps.Save();
-			if ( Hero->PressEx2 ) encounter.init(xPos,yPos);
+			
+			
 			if ( Hero->PressEx3 )
 			{
 				LogPrint("Current Virtual Screen: %d \n", mapInfo.ScreenAt(xPos, yPos));
 				LogPrint("Current Virtual Map: %d \n", mapInfo.curMap);
 			}
-			if(Hero->InputLeft)
+			if ( mapInfo.canScroll )
 			{
-				//LogPrint("Solidity is: %f \n", Graphics->GetPixel(bitmaps.fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
-				//LogPrint("Hero->X is: %d \n", Hero->X);
-				//LogPrint("Hero->Y is: %d \n", Hero->Y);
-				if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] )), yPos+Hero->Y+56+8) ) )
-				//LogPrint("xPos is: %d \n", xPos);
-					//xPos-=5;
+				if(Hero->InputLeft)
 				{
-					int temp_x_pos = xPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
-					//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
-					if ( temp_x_pos >= 0 && temp_x_pos <= (256*15) ) //Might need to extend the <= value out a bit
+					//LogPrint("Solidity is: %f \n", Graphics->GetPixel(bitmaps.fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
+					//LogPrint("Hero->X is: %d \n", Hero->X);
+					//LogPrint("Hero->Y is: %d \n", Hero->Y);
+					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] )), yPos+Hero->Y+56+8) ) )
+					//LogPrint("xPos is: %d \n", xPos);
+						//xPos-=5;
 					{
-						xPos = temp_x_pos;
+						int temp_x_pos = xPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
+						//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						if ( temp_x_pos >= 0 && temp_x_pos <= (256*15) ) //Might need to extend the <= value out a bit
+						{
+							xPos = temp_x_pos;
+						}
+						//else, move the player sprite itself. 
+						
 					}
-					//else, move the player sprite itself. 
+				}
+				else if(Hero->InputRight)
+				{
+					//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56+8));
+					//LogPrint("Hero->X is: %d \n", Hero->X);
+					//LogPrint("Hero->Y is: %d \n", Hero->Y);
+					//LogPrint("xPos is: %d \n", xPos);
+					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X + 16 + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] )), yPos+Hero->Y+56+8) ) )
+					{
+						//xPos+=5;
+						int temp_x_pos = xPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
+						//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						if ( temp_x_pos >= 0 && temp_x_pos <= (256*15) )  //Might need to extend the <= value out a bit
+						{
+							xPos = temp_x_pos;
+						}
+						//else, move the player sprite itself. 
+						//xPos += ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+					}
+				}
 					
-				}
-			}
-			else if(Hero->InputRight)
-			{
-				//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56+8));
-				//LogPrint("Hero->X is: %d \n", Hero->X);
-				//LogPrint("Hero->Y is: %d \n", Hero->Y);
-				//LogPrint("xPos is: %d \n", xPos);
-				if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X + 16 + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] )), yPos+Hero->Y+56+8) ) )
+				if(Hero->InputUp)
 				{
-					//xPos+=5;
-					int temp_x_pos = xPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
-					//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
-					if ( temp_x_pos >= 0 && temp_x_pos <= (256*15) )  //Might need to extend the <= value out a bit
-					{
-						xPos = temp_x_pos;
-					}
-					//else, move the player sprite itself. 
-					//xPos += ( ((frame&1)) ? lsteps[0] : lsteps[1] );
-				}
-			}
+					//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
+					//LogPrint("yPos is: %d \n", yPos);
 				
-			if(Hero->InputUp)
-			{
-				//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
-				//LogPrint("yPos is: %d \n", yPos);
-			
-				if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, yPos+Hero->Y + 56 - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ))) ) )
-				{
-					int temp_y_pos = yPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
-					//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
-					if ( temp_y_pos >= 0 && temp_y_pos <= (176*7) )  //Might need to extend the <= value out a bit
+					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, yPos+Hero->Y + 56 - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ))) ) )
 					{
-						yPos = temp_y_pos;
+						int temp_y_pos = yPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
+						//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						if ( temp_y_pos >= 0 && temp_y_pos <= (176*7) )  //Might need to extend the <= value out a bit
+						{
+							yPos = temp_y_pos;
+						}
+						//else, move the player sprite itself. 
+						//yPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
 					}
-					//else, move the player sprite itself. 
-					//yPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+				}
+				else if(Hero->InputDown)
+				{
+					//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
+					//LogPrint("yPos is: %d \n", yPos);
+					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, 16+yPos+Hero->Y+56 + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ))) ))
+					{
+						//yPos+=5;
+						int temp_y_pos = yPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
+						//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						if ( temp_y_pos >= 0 && temp_y_pos <= (176*7) )  //Might need to extend the <= value out a bit
+						{
+							yPos = temp_y_pos;
+						}
+						//else, move the player sprite itself. 
+						//yPos += ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+					}
 				}
 			}
-			else if(Hero->InputDown)
-			{
-				//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
-				//LogPrint("yPos is: %d \n", yPos);
-				if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, 16+yPos+Hero->Y+56 + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ))) ))
-				{
-					//yPos+=5;
-					int temp_y_pos = yPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 1 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
-					//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
-					if ( temp_y_pos >= 0 && temp_y_pos <= (176*7) )  //Might need to extend the <= value out a bit
-					{
-						yPos = temp_y_pos;
-					}
-					//else, move the player sprite itself. 
-					//yPos += ( ((frame&1)) ? lsteps[0] : lsteps[1] );
-				}
-			}
-			
 			//xPos = Clamp(xPos, 0, 256*15);
 			//yPos = Clamp(yPos, 0, 176*7);
 			
 			//blit the current screen slice from the OVERSCAN bitmap, to the temp bitmap used to render the screen.
 			bitmaps.scrn->BlitTo(6, bitmaps.overscan, xPos, yPos, 256, 256, 0, 0, bitmaps.resized->Width, bitmaps.resized->Height, 0, 0, 0, 0, 0, false);
-			
+			if ( Hero->PressEx2 ) encounter.init(xPos,yPos);
+			if ( encounter.valid ) encounter.draw();
+			if ( Hero->PressEx1 ) { encounter.valid = 0; mapInfo.canScroll = true; } //end the encounter.
 			int sW = 128;
 			int sH = 128;
 			//blit the temp screen bitmap to the video bitmap. 
 			bitmaps.scrn->Blit(7, -2, 0, 0, 256, 256, 0, -56, 256, 256, 0, 0, 0, 0, 0, false);
 			//blit the player sprite to the video bitmap. 
-			bitmaps.herosprite->Blit(7, -2, 0, 0, 16, 16, Hero->X, Hero->Y, 16, 16, 0, 0, 0, (( Hero->Dir == DIR_LEFT ) ? BITDX_VFLIP : 0), 0, true);
+			if ( !encounter.valid ) bitmaps.herosprite->Blit(7, -2, 0, 0, 16, 16, Hero->X, Hero->Y, 16, 16, 0, 0, 0, (( Hero->Dir == DIR_LEFT ) ? BITDX_VFLIP : 0), 0, true);
 			
 			
 			NoAction();
