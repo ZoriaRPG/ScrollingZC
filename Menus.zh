@@ -1,0 +1,325 @@
+namespace menu
+{
+	enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, font_width, kerning, background, width, height, messages, curMsg, last };
+	
+	
+	
+	namespace stats
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, font_width, kerning, background, width, height, messages, curMsg, last };
+	
+		def MAX_MESSAGES = 10;
+		def MAX_VALUES = 10;
+		bitmap bitty;
+		def bWidth = 64;
+		def bHeight = 96;
+		def X = 8;
+		def Y = 16;
+		def FONT = FONT_FF;
+		def FONT_H = 16;
+		def FONT_W = 16;
+		def KERN = 4;
+		def BG = 0x0F;
+		def COLOUR = 0x01;
+		int data[last];
+		int values[MAX_VALUES]; //stat values
+		int msg[MAX_MESSAGES]; //menu text lines
+		
+		void init(int ptr)
+		{
+			bitty = Game->CreateBitmap(bWidth,bHeight);
+			
+			setProperties(ptr);
+		}
+		void draw()
+		{
+			int curmsg[256]; int curvalue[10];
+			int text_y = 4; int len_x;
+			for ( int q = 0; msg[q] > 0; ++q )
+			{
+				messagedata md = Game->LoadMessageData(msg[q]);
+				md->Get(curmsg);
+				for ( int w = curmsg[255]; curmsg[w] != ' '; --w )
+				{
+					curmsg[w] = 0; //clear trailing spaces
+				}
+				
+				//itoa(curvalue, values[q]);
+				for ( int ww = 0; (curvalue[ww]); ++ww ) len_x += data[font_width]; //Get numerical text width
+				bitty->DrawString(0,4, text_y, data[font], data[colour], -1, 0, curmsg, 128);
+				bitty->DrawString(0,bitty->Width - 4 - len_x, text_y, data[font], data[colour], -1, 0, curvalue, 128);
+				text_y += data[font_height] + data[kerning];
+			}
+			bitty->Blit(7, bitmaps.scrn, 0, 0, bitty->Width, bitty->Height, data[x], data[y], bitty->Width, bitty->Height, 0,0,0,0,0,false); 
+		}
+		void setCurMessage(int m)
+		{
+			msg[data[curMsg]] = m;
+			++data[curMsg];
+		}
+		void setMessages(int first, int num)
+		{
+			//messagedata md;
+			for(int q = 0; q < num; ++q )
+			{
+				//md = Game->LoadMessageData(q+first);
+				msg[data[curMsg]] = first+q;
+				++data[data[curMsg]];
+			}
+		}
+		void set(int p, int v)
+		{
+			if ( p < 0 || p > (last-1) ) 
+			{
+				LogPrint("Invalid menu property [ %d ", p);
+				LogPrint("] passed to set(). Min value is 0, max is %d. \n", last-1);
+				return;
+			}
+			data[p] = v;
+		}
+		void setMessage(int mID, int msg)
+		{
+			if ( mID < 0 || mID > (MAX_MESSAGES-1) ) 
+			{
+				LogPrint("Invalid message index ID [ %d ", mID);
+				LogPrint("] passed to setMessage. Min index is 0, max is %d. \n", (MAX_MESSAGES-1));
+				return;
+			}
+			msg[mID] = msg;
+		}
+		void setMessages(int ptr)
+		{
+			if ( SizeOfArray(ptr) != MAX_MESSAGES ) 
+			{
+				LogPrint("Array passed to setMenuProperties() is the wrong size [ %d ", SizeOfArray(ptr));
+				LogPrint("]. \n The array must be a size of [ %d ", last);
+				LogPrint("] %s \n", "Aborting.");
+				return;
+			}
+			for ( int q = 0; q < last; ++q ) 
+			{
+				msg[q] = ptr[q];
+			}
+		}
+		void setProperties(int ptr)
+		{
+			if ( SizeOfArray(ptr) != last ) 
+			{
+				LogPrint("Array passed to setMenuProperties() is the wrong size [ %d ", SizeOfArray(ptr));
+				LogPrint("]. \n The array must be a size of [ %d ", last);
+				LogPrint("] %s \n", "Aborting.");
+				return;
+			}
+			for ( int q = 0; q < last; ++q ) 
+			{
+				data[q] = ptr[q];
+			}
+			
+		}
+		void setMenuProperties(int m_valid, int m_x, int m_y, int m_selection, int m_numOptions, int m_colour, int m_font, int m_font_height,
+			int m_font_width, int m_kerning,
+			int m_background, int m_width, int m_height, int m_messages, int m_curMsg)
+		{
+			data[valid] = m_valid;
+			data[selection] = m_selection;
+			data[numOptions] = m_numOptions;
+			data[colour] = m_colour;
+			data[font] = m_font;
+			data[font_height] = m_font_height; 
+			data[font_width] = m_font_width; 
+			data[kerning] = m_kerning;
+			data[background] = m_background;
+			data[x] = m_x;
+			data[y] = m_y;
+			data[width] = m_width;
+			data[height] = m_height;
+			data[messages] = m_messages;
+			data[curMsg] = m_curMsg;
+			
+		}
+		
+	}
+	namespace battle
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, font_width, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init(int ptr)
+		{
+			
+		}
+		
+	}
+	namespace command
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, font_width, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init(int ptr)
+		{
+			
+		}
+		
+	}
+	namespace dlg
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, font_width, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init(int ptr)
+		{
+			
+		}
+		
+	}
+	
+	namespace inventory
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, font_width, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init(int ptr)
+		{
+			
+		}
+		
+	}
+	namespace shop
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, font_width, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init(int ptr)
+		{
+			
+		}
+		
+	}
+	namespace inn
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, font_width, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init(int ptr)
+		{
+			
+		}
+		
+	}
+	namespace spell
+	{
+		enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, font_width, kerning, background, width, height, messages, curMsg, last };
+	
+		bitmap bitty;
+		int data[last];
+		void init(int ptr)
+		{
+			
+		}
+		
+	}
+	void init(int ptr)
+	{
+		stats::init(ptr);
+		battle::init(ptr);
+		command::init(ptr);
+		dlg::init(ptr);
+		inventory::init(ptr);
+		shop::init(ptr);	
+		inn::init(ptr);
+		spell::init(ptr);
+	}
+	
+	/*
+	void setCurMessage(int menu, int m)
+	{
+		menu::msg[menu::data[curMsg]] = m;
+		++menu::data[curMsg];
+	}
+	void setMessages(int menu, int first, int num)
+	{
+		//messagedata md;
+		for(int q = 0; q < num; ++q )
+		{
+			//md = Game->LoadMessageData(q+first);
+			menu::msg[menu::data[curMsg]] = first+q;
+			++menu::data[menu::data[curMsg]];
+		}
+	}
+	void set(int menu, int p, int v)
+	{
+		if ( p < 0 || p > (last-1) ) 
+		{
+			LogPrint("Invalid menu property [ %d ", p);
+			LogPrint("] passed to set(). Min value is 0, max is %d. \n", last-1);
+			return;
+		}
+		menu::data[p] = v;
+	}
+	void setMessage(int menu, int mID, int msg)
+	{
+		if ( mID < 0 || mID > (MAX_MESSAGES-1) ) 
+		{
+			LogPrint("Invalid message index ID [ %d ", p);
+			LogPrint("] passed to setMessage. Min index is 0, max is %d. \n", (menu::MAX_MESSAGES-1));
+			return;
+		}
+		menu::msg[mID] = msg;
+	}
+	void setMessages(int menu, int ptr)
+	{
+		if ( SizeOfArray(ptr) != MAX_MESSAGES ) 
+		{
+			LogPrint("Array passed to setMenuProperties() is the wrong size [ %d ", SizeOfArray(ptr));
+			LogPrint("]. \n The array must be a size of [ %d ", last);
+			LogPrint("] %s \n", "Aborting.");
+			return;
+		}
+		for ( int q = 0; q < last; ++q ) 
+		{
+			menu::msg[q] = ptr[q];
+		}
+	}
+	void setProperties(int menu, int ptr)
+	{
+		if ( SizeOfArray(ptr) != last ) 
+		{
+			LogPrint("Array passed to setMenuProperties() is the wrong size [ %d ", SizeOfArray(ptr));
+			LogPrint("]. \n The array must be a size of [ %d ", last);
+			LogPrint("] %s \n", "Aborting.");
+			return;
+		}
+		for ( int q = 0; q < last; ++q ) 
+		{
+			menu::data[q] = ptr[q];
+		}
+		
+	}
+	void setMenuProperties(int menu, int m_valid, int m_x, int m_y, int m_selection, int m_numOptions, int m_colour, int m_font, int m_font_height, int m_kerning,
+		int m_background, int m_width, int m_height, int m_messages, int m_curMsg)
+	{
+		menu::data[valid] = m_valid;
+		menu::data[selection] = m_selection;
+		menu::data[numOptions] = m_numOptions;
+		menu::data[colour] = m_colour;
+		menu::data[font] = m_font;
+		menu::data[font_height] = m_font_height; 
+		menu::data[kerning] = m_kerning;
+		menu::data[background] = m_background;
+		menu::data[x] = m_x;
+		menu::data[y] = m_y;
+		menu::data[width] = m_width;
+		menu::data[height] = m_height;
+		menu::data[messages] = m_messages;
+		menu::data[curMsg] = m_curMsg;
+		
+	}
+	*/
+}
+
