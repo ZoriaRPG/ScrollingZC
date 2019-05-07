@@ -138,7 +138,7 @@ STRUCT script spells
 			}
 			
 		}
-		
+		//Draw to the bitmnap here?
 		int name[256];
 		
 		
