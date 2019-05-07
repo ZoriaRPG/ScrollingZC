@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// v0.7.1                 ///
+/// v0.7.2                 ///
 /// 7th May, 2019          ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -33,6 +33,7 @@
 //        : Added menutype ENUM.
 // v0.7.0 : Begin adding spells.
 // v0.7.1 : Fix pseudo-2d array access. 
+// V0.7.2 : More array access fixes. 
 
 
 script typedef untyped STRUCT;
@@ -47,7 +48,7 @@ STRUCT script spells
 {
 	spelltype current;
 	enum{ str, cost, effect, duration, last };
-	int data[<int>warp+1, last]; //[<int>warp]; //2d array
+	int data[warp+1, last]; //[<int>warp]; //2d array
 	
 	
 	void cast(spelltype spell)
@@ -82,17 +83,17 @@ STRUCT script spells
 		int sz = SizeOfArray(data);
 		//string format SPELLNAME 000 @effects
 		//example: hurtmore, 4 @2
-		for ( int q = 0; q < <int>warp+1; ++q )
+		for ( int q = 0; q < warp+1; ++q )
 		{
 			for ( int w = 0; w < last; ++ w) 
 			{
-				data[q,str] = first_str; //first_str is also the current string that we are reading
+				data[q*warp+str] = first_str; //first_str is also the current string that we are reading
 				int chr[256];
 				int the_cost[5];
 				int the_effect[5];
 				//int effect[3];
 				int effect_buf[16];
-				Game->GetMessage(data[q,str], chr);
+				Game->GetMessage(data[q*warp+str], chr);
 				//strip trailing spaces
 				for ( int w = 255; chr[w] != ' ' && chr[w] != 0; --w )
 				{
@@ -109,7 +110,7 @@ STRUCT script spells
 						++pos;
 					}
 				}
-				data[q,cost] = atoi(the_cost);
+				data[q*warp+cost] = atoi(the_cost);
 				//get the effect
 				until(chr[pos] == '@')
 				{
@@ -125,8 +126,8 @@ STRUCT script spells
 					++pos;
 					++effect_pos;
 				}
-				if ( !strcmp(effect, "none") ) data[q,effect] = <int>FXnone;
-				if ( !strcmp(effect, "flash") ) data[q,effect] = <int>FXflash;
+				if ( !strcmp(effect, "none") ) data[q*warp+effect] = FXnone;
+				if ( !strcmp(effect, "flash") ) data[q*warp+effect] = FXflash;
 				
 				//while(char[pos] != 0 && isNumber(char[pos]) ) //store the effect ID
 				//{
