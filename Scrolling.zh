@@ -29,10 +29,122 @@
 //        : Added a STRUCT script for the vitals.
 //        : Draw the stats menu. 
 //        : Disabled some traces.
+// v0.6.3 : Added menu STRUCT. 
+//        : Added menutype ENUM.
+// v0.7.0 : Begin adding spells.
 
 
 script typedef untyped STRUCT;
 typedef const int def;
+
+enum menutype { mNone, mStats, mBattle, mCommand, mDialogue, mInventory, mShop, mInn, mSpell };
+enum stattype { level, hp, mp, gold, exp, str, dex, wis, con, cha, mind, soul, luck };
+enum spelltype { heal, hurt, light, fire, firemore, healmore, hurtmore, healmost, firemost, hurtmost, exit, warp };
+enum spelleffect { FXnone, FXflash };
+
+STRUCT script spells
+{
+	spelltype current;
+	enum{ str, cost, effect, duration, last };
+	int data[<int>warp+1, last]; //[<int>warp]; //2d array
+	
+	
+	void cast(spelltype spell)
+	{
+		switch(spell)
+		{
+			case heal: break;
+			case hurt: break;
+			case light: break;
+			case fire: break;
+			case firemore: break;
+			case healmore: break;
+			case hurtmore: break;
+			case healmost: break;
+			case firemost: break;
+			case hurtmost: break;
+			case warp: break;
+			case heal: break;
+			case heal: break;
+			case heal: break;
+			default: break;
+			
+		}
+		
+	}
+	void init(int first_str) //stores the string ID, the cost, and the effect for each spell, using ths string editor
+	//string format is: 
+	//name 000 @effect
+	//example: 
+	//blaze 8 @flash
+	{
+		int sz = SizeOfArray(data);
+		//string format SPELLNAME 000 @effects
+		//example: hurtmore, 4 @2
+		for ( int q = 0; q < <int>warp+1; ++q )
+		{
+			for ( int w = 0; w < last; ++ w) 
+			{
+				data[q][str] = first_str; //first_str is also the current string that we are reading
+				int chr[256];
+				int the_cost[5];
+				int the_effect[5];
+				//int effect[3];
+				int effect_buf[16];
+				Game->GetMessage(data[q][str], chr);
+				//strip trailing spaces
+				for ( int w = 255; chr[w] != ' ' && chr[w] != 0; --w )
+				{
+					chr[w] = 0; //clear trailing spaces
+				}
+				//get only the cost.
+				int pos;
+				for ( int qw = 0; chr[qw] != 0; ++qw )
+				{
+					if ( isNumber(chr[qw]) ) //store the cost that is in the string here.
+					{
+						if ( chr[qw] == '@' ) break;
+						the_cost[pos] = chr[qw];
+						++pos;
+					}
+				}
+				data[q][cost] = atoi(the_cost);
+				//get the effect
+				until(chr[pos] == '@')
+				{
+					if ( !chr[pos] ) LogPrint("String entry for spell string %d was missign the effect arg. \n", first_str);
+					++pos;
+				} 
+				++pos; //slip delimiter
+				int effect_pos;
+				while(chr[pos] != 0) 
+				{
+					//store the effect type
+					the_effect[effect_pos] = chr[pos];
+					++pos;
+					++effect_pos;
+				}
+				if ( !strcmp(effect, "none") ) data[q][effect] = <int>FXnone;
+				if ( !strcmp(effect, "flash") ) data[q][effect] = <int>FXflash;
+				
+				//while(char[pos] != 0 && isNumber(char[pos]) ) //store the effect ID
+				//{
+				//	effect[effect_pos] = char[pos];
+				//	++pos;
+				//	++effect_pos;
+				//}
+				++first_str;
+			}
+			
+		}
+		
+		int name[256];
+		
+		
+		
+		
+	}
+}
 
 STRUCT script vital
 {
@@ -79,6 +191,15 @@ STRUCT script vital
 	}
 	void init(int ptr) { set(ptr); } 
 	
+}
+
+STRUCT script menu
+{
+	enum { selection, last = 64 };
+	const int DATA_LAST = 64;
+	menutype current;
+	
+	int data[last];
 }
 
 /*
