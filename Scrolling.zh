@@ -36,6 +36,7 @@
 // V0.7.2 : More array access fixes. 
 
 
+
 script typedef untyped STRUCT;
 typedef const int def;
 
@@ -552,10 +553,33 @@ STRUCT script mapInfo
 	}
 }
 
+//enemy that appears on scrolling draws.
+npc script enemy
+{
+	
+	def REL_X = 16; //->Misc
+	def REL_Y = 17;
+	void run()
+	{
+		this->Misc[REL_X] = Hero->X - this->X; //Update every frame, and blit the sprite based on this.
+		this->Misc[REL_Y] = Hero->Y - this->Y;
+		
+		
+		
+	}	
+	void draw()
+	{
+		
+		
+	}
+}
+
 STRUCT script encounter
 {
 	int terrain_type; int valid;
 	enum { terFIELD, terFOREST, terHILL, terSWAMP, terDUNGEON, terVILL, terCASTLE, terDARK, terLAST };
+	//relativity to the Hero
+	
 	bool init(int xpos, int ypos) //xpos and ypos are the current bitmap coordinates
 	{
 		terrain_type = mapInfo.comboI(xpos,ypos); //Inh flag for terrain type.
@@ -629,7 +653,7 @@ hero script h_init
 
 dmapdata script scroll
 {
-	void run()
+	void run(int screens_wide, int screens_high) //adjust the scrolling field based on this, rather than on fixed sizes. 
 	{
 		mapInfo.curMap = this->Map;
 		int frame = 0;
