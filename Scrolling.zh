@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// v0.8.1                 ///
+/// v0.8.2                 ///
 /// 9th May, 2019          ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -37,6 +37,7 @@
 // v0.8.0 : Added code to draw enemies moving around on the screen, and an npc script 'enemy'
 //        : to control their initial blits. 
 // v0.8.1 : Minor adjustments to enemy drawing code, to clear, resize, and reprime the bitmap, per enemy. 
+// v0.8.2 : Fixed reading of spell string datum.
 
 
 
@@ -51,8 +52,8 @@ enum spelleffect { FXnone, FXflash };
 STRUCT script spells
 {
 	spelltype current;
-	enum{ str, cost, effect, duration, last };
-	int data[warp+1, last]; //[<int>warp]; //2d array
+	enum{ spStr, spCost, spEffect, spDuration, spLast };
+	int data[warp, spLast]; //[<int>warp]; //2d array
 	
 	
 	void cast(spelltype spell)
@@ -78,69 +79,79 @@ STRUCT script spells
 		}
 		
 	}
-	void init(int first_str) //stores the string ID, the cost, and the effect for each spell, using ths string editor
+	//6,7,8,9,10
+	void init(int first_str, int last_str) //stores the string ID, the cost, and the effect for each spell, using ths string editor
 	//string format is: 
 	//name 000 @effect
 	//example: 
 	//blaze 8 @flash
 	{
 		int sz = SizeOfArray(data);
+		LogPrint("array spells.data[] is size %d \n", sz);
 		//string format SPELLNAME 000 @effects
 		//example: hurtmore, 4 @2
-		for ( int q = 0; q < warp+1; ++q )
+		int max = ( ( ( last_str - first_str ) + 1 )  < spLast ) ? (( last_str - first_str ) + 1) : spLast;
+		for ( int q = 0; q < max; ++q ) //the max number of strings to process
 		{
-			for ( int w = 0; w < last; ++ w) 
+			int chr[256];
+			data[q*warp+spStr] = first_str; //first_str is also the current string that we are reading
+			Game->GetMessage(q+first_str, chr);
+			//strip trailing spaces
+			int w;
+			for ( w = 255; chr[w] != ' ' && chr[w] != 0; --w )
 			{
-				data[q*warp+str] = first_str; //first_str is also the current string that we are reading
-				int chr[256];
+				chr[w] = 0; //clear trailing spaces
+			}			
+			LogPrint("Spell String is: %s \n", chr);
+			
+			
 				int the_cost[5];
-				int the_effect[5];
+				int the_effect[10];
 				//int effect[3];
 				int effect_buf[16];
-				Game->GetMessage(data[q*warp+str], chr);
-				//strip trailing spaces
-				for ( int w = 255; chr[w] != ' ' && chr[w] != 0; --w )
-				{
-					chr[w] = 0; //clear trailing spaces
-				}
-				//get only the cost.
-				int pos;
-				for ( int qw = 0; chr[qw] != 0; ++qw )
-				{
-					if ( isNumber(chr[qw]) ) //store the cost that is in the string here.
-					{
-						if ( chr[qw] == '@' ) break;
-						the_cost[pos] = chr[qw];
-						++pos;
-					}
-				}
-				data[q*warp+cost] = atoi(the_cost);
-				//get the effect
-				until(chr[pos] == '@')
-				{
-					if ( !chr[pos] ) LogPrint("String entry for spell string %d was missign the effect arg. \n", first_str);
-					++pos;
-				} 
-				++pos; //slip delimiter
-				int effect_pos;
-				while(chr[pos] != 0) 
-				{
-					//store the effect type
-					the_effect[effect_pos] = chr[pos];
-					++pos;
-					++effect_pos;
-				}
-				if ( !strcmp(effect, "none") ) data[q*warp+effect] = FXnone;
-				if ( !strcmp(effect, "flash") ) data[q*warp+effect] = FXflash;
+			
+			//get only the cost.
+			int pos; bool eff;
+			for ( w = 0; chr[w] != 0; ++w )
+			{
+				if ( chr[w] == '@' && !eff ) { pos = 0; eff = true; LogPrint("Encountered Delim %s. \n", "@"); }
 				
-				//while(char[pos] != 0 && isNumber(char[pos]) ) //store the effect ID
-				//{
-				//	effect[effect_pos] = char[pos];
-				//	++pos;
-				//	++effect_pos;
-				//}
-				++first_str;
+				if ( !eff && !isNumber(chr[w]) && chr[w] != 0 ) continue;
+				if ( chr[w] == 0 ) break;
+				
+				if ( !eff ) the_cost[pos] = chr[w];
+				
+				else 
+				{ 
+					if ( pos < 16 )
+						effect_buf[pos] = chr[w]; 
+				}
+				++pos;
+
 			}
+			effect_buf[15] = 0;
+			LogPrint("Spell Cost is: %s \n", the_cost);
+			//get the effect
+			
+			//pos = 0;
+			//do
+			//{
+			//	++w;
+			//} until(chr[w] == '@' || chr[w] == 0);
+			//for ( ; chr[w] != 0; ++w ) the_effect[pos] = chr[w];
+			//pos = 0;
+			//for ( ; chr[w] != 0; ++w )
+			//{
+				
+				//if ( chr[w] == '@' ) continue;
+				//if ( chr[w] == 0 ) break;
+			//	the_effect[pos] = chr[w];
+				
+			//}
+			LogPrint("Spell Effect is: %s \n", effect_buf);
+			if ( !strcmp(the_effect, "none") ) data[q*warp+spEffect] = FXnone;
+			if ( !strcmp(the_effect, "flash") ) data[q*warp+spEffect] = FXflash;
+			
 			
 		}
 		//Draw to the bitmnap here?
@@ -686,6 +697,7 @@ hero script h_init
 		bitmaps.Init();
 		//statsmenu.setMessages(1, 5);
 		this->CollDetection = false;
+		spells.init(6,10);
 	}
 }
 
