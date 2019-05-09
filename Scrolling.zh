@@ -2,8 +2,8 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// v0.7.2                 ///
-/// 7th May, 2019          ///
+/// v0.8.0                 ///
+/// 9th May, 2019          ///
 //////////////////////////////
 // v0.1.0 : Initial Base
 // v0.2.0 : Added Solidity
@@ -34,6 +34,8 @@
 // v0.7.0 : Begin adding spells.
 // v0.7.1 : Fix pseudo-2d array access. 
 // V0.7.2 : More array access fixes. 
+// v0.8.0 : Added code to draw enemies moving around on the screen, and an npc script 'enemy'
+//        : to control their initial blits. 
 
 
 
@@ -418,6 +420,7 @@ STRUCT script bitmaps
 	bitmap heroBUF; //Used as a buffer for the player sprite. 
 	bitmap enemyQuad;
 	bitmap enemyBUF;
+	bitmap enemyText;
 	
 	void Clear()
 	{
@@ -437,7 +440,8 @@ STRUCT script bitmaps
 		herosprite->Clear(0);	
 		heroBUF->Clear(0);
 		enemyQuad->Clear(0);
-		enemyBUF->Clear(0);		
+		enemyBUF->Clear(0);
+		enemyText->Clear(0);
 	}
 	void Init()
 	{
@@ -462,6 +466,7 @@ STRUCT script bitmaps
 		
 		enemyQuad = Game->CreateBitmap(128,96);
 		enemyBUF = Game->CreateBitmap(128,96);
+		enemyText = Game->CreateBitmap(16,16);
 	}
 	void Save()
 	{
@@ -559,17 +564,45 @@ npc script enemy
 	
 	def REL_X = 16; //->Misc
 	def REL_Y = 17;
+	int jj;
 	void run()
 	{
-		this->Misc[REL_X] = Hero->X - this->X; //Update every frame, and blit the sprite based on this.
-		this->Misc[REL_Y] = Hero->Y - this->Y;
+		//this->Misc[REL_X] = this->X; //Update every frame, and blit the sprite based on this.
+		//this->Misc[REL_Y] = this->Y;
+		bitmap bitty = bitmaps.enemyText;
+		Trace(bitty);
+		//bitmaps.enemyBUF->Create(0,this->TileWidth,this->TileHeight);
+		while(this->isValid())
+		{
+			//bitmaps.enemyText->Clear(6);
+			//bitmaps.enemyText->DrawTile(6, 0,0,this->OriginalTile, this->TileWidth, this->TileHeight,
+			//	this->CSet, 0, 0, 0, 0, 0, /*this->Flip*/ 0, false, 128);
+			//bitmaps.enemyText->DrawTile(0, 0,0,/*this->OriginalTile*/ 473, 1, 1,
+			//	this->CSet, 0, 0, 0, 0, 0, /*this->Flip*/ 0, true, 128);
+			bitmaps.enemyText->FastTile(0, 0, 0, this->Tile, this->CSet, 128);
+			//LogPrint("Drawing %d tile to enemyBUF. \n", this->Tile);
+			//bitmaps.enemyText->Write(6, "enemtext.png", true);
+			Waitframe();
+		}
 		
 		
 		
 	}	
-	void draw()
+	void draw(npc n)
 	{
-		
+		//LogPrint("n->Misc[REL_X] is %d \n", n->Misc[REL_X]);
+		//LogPrint("n->Misc[REL_Y] is %d \n", n->Misc[REL_Y]);
+		bitmaps.enemyText->Blit(6, bitmaps.scrn, 0,0, bitmaps.enemyText->Width, bitmaps.enemyText->Height,
+			//n->Misc[REL_X], 
+			//n->Misc[REL_Y], 
+			//100,100,
+			n->X, n->Y,
+			bitmaps.enemyText->Width, bitmaps.enemyText->Height, 0,0,0,0,0, true);
+			if ( !jj )
+			{
+				++jj;
+				bitmaps.enemyText->Write(6, "enem.png", true);
+			}
 		
 	}
 }
@@ -577,6 +610,7 @@ npc script enemy
 STRUCT script encounter
 {
 	int terrain_type; int valid;
+	npcdata enemies[8];
 	enum { terFIELD, terFOREST, terHILL, terSWAMP, terDUNGEON, terVILL, terCASTLE, terDARK, terLAST };
 	//relativity to the Hero
 	
@@ -778,6 +812,12 @@ dmapdata script scroll
 							xPos = temp_x_pos;
 						}
 						//else, move the player sprite itself. 
+						for ( int q = Screen->NumNPCs(); q > 0; --q )
+						{
+							npc n = Screen->LoadNPC(q);
+							n->X += (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
+						}
+							
 						
 					}
 				}
@@ -798,6 +838,11 @@ dmapdata script scroll
 						}
 						//else, move the player sprite itself. 
 						//xPos += ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						for ( int q = Screen->NumNPCs(); q > 0; --q )
+						{
+							npc n = Screen->LoadNPC(q);
+							n->X -= (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
+						}
 					}
 				}
 					
@@ -816,6 +861,11 @@ dmapdata script scroll
 						}
 						//else, move the player sprite itself. 
 						//yPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						for ( int q = Screen->NumNPCs(); q > 0; --q )
+						{
+							npc n = Screen->LoadNPC(q);
+							n->Y += (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
+						}
 					}
 				}
 				else if(Hero->InputDown)
@@ -833,6 +883,11 @@ dmapdata script scroll
 						}
 						//else, move the player sprite itself. 
 						//yPos += ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						for ( int q = Screen->NumNPCs(); q > 0; --q )
+						{
+							npc n = Screen->LoadNPC(q);
+							n->Y -= (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
+						}
 					}
 				}
 			}
@@ -848,6 +903,11 @@ dmapdata script scroll
 			int sW = 128;
 			int sH = 128;
 			//blit the temp screen bitmap to the video bitmap. 
+			for ( int q = Screen->NumNPCs(); q > 0; --q )
+			{
+				npc n = Screen->LoadNPC(q);
+				enemy.draw(n);
+			}
 			bitmaps.scrn->Blit(7, -2, 0, 0, 256, 256, 0, -56, 256, 256, 0, 0, 0, 0, 0, false);
 			//blit the player sprite to the video bitmap. 
 			if ( !encounter.valid ) bitmaps.herosprite->Blit(7, -2, 0, 0, 16, 16, Hero->X, Hero->Y, 16, 16, 0, 0, 0, (( Hero->Dir == DIR_LEFT ) ? BITDX_VFLIP : 0), 0, true);
