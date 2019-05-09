@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// v0.8.0                 ///
+/// v0.8.1                 ///
 /// 9th May, 2019          ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -33,9 +33,10 @@
 //        : Added menutype ENUM.
 // v0.7.0 : Begin adding spells.
 // v0.7.1 : Fix pseudo-2d array access. 
-// V0.7.2 : More array access fixes. 
+// v0.7.2 : More array access fixes. 
 // v0.8.0 : Added code to draw enemies moving around on the screen, and an npc script 'enemy'
 //        : to control their initial blits. 
+// v0.8.1 : Minor adjustments to enemy drawing code, to clear, resize, and reprime the bitmap, per enemy. 
 
 
 
@@ -570,6 +571,9 @@ npc script enemy
 		//this->Misc[REL_X] = this->X; //Update every frame, and blit the sprite based on this.
 		//this->Misc[REL_Y] = this->Y;
 		bitmap bitty = bitmaps.enemyText;
+		
+		bitty->Create(0, this->TileWidth*16, this->TileHeight*16);
+		bitty->Clear(0);
 		Trace(bitty);
 		//bitmaps.enemyBUF->Create(0,this->TileWidth,this->TileHeight);
 		while(this->isValid())
@@ -579,7 +583,7 @@ npc script enemy
 			//	this->CSet, 0, 0, 0, 0, 0, /*this->Flip*/ 0, false, 128);
 			//bitmaps.enemyText->DrawTile(0, 0,0,/*this->OriginalTile*/ 473, 1, 1,
 			//	this->CSet, 0, 0, 0, 0, 0, /*this->Flip*/ 0, true, 128);
-			bitmaps.enemyText->FastTile(0, 0, 0, this->Tile, this->CSet, 128);
+			bitty->FastTile(0, 0, 0, this->Tile, this->CSet, 128);
 			//LogPrint("Drawing %d tile to enemyBUF. \n", this->Tile);
 			//bitmaps.enemyText->Write(6, "enemtext.png", true);
 			Waitframe();
@@ -598,11 +602,11 @@ npc script enemy
 			//100,100,
 			n->X, n->Y,
 			bitmaps.enemyText->Width, bitmaps.enemyText->Height, 0,0,0,0,0, true);
-			if ( !jj )
-			{
-				++jj;
-				bitmaps.enemyText->Write(6, "enem.png", true);
-			}
+			//if ( !jj )
+			//{
+			//	++jj;
+			//	bitmaps.enemyText->Write(6, "enem.png", true);
+			//}
 		
 	}
 }
