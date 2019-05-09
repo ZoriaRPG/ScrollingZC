@@ -38,6 +38,7 @@
 //        : to control their initial blits. 
 // v0.8.1 : Minor adjustments to enemy drawing code, to clear, resize, and reprime the bitmap, per enemy. 
 // v0.8.2 : Fixed reading of spell string datum.
+// v0.8.2 : Added rpg namespace. Moved dice namespace inside it. Added version control values.
 
 
 
@@ -48,6 +49,31 @@ enum menutype { mNone, mStats, mBattle, mCommand, mDialogue, mInventory, mShop, 
 enum stattype { level, hp, mp, gold, exp, str, dex, wis, con, cha, mind, soul, luck };
 enum spelltype { heal, hurt, light, fire, firemore, healmore, hurtmore, healmost, firemost, hurtmost, exit, warp };
 enum spelleffect { FXnone, FXflash };
+
+
+
+
+namespace rpg
+{
+	//def VERSION = 0;
+	//def BETA = 1;
+	//def RPG_DATA_SIZE = 64;
+	//int data[RPG_DATA_SIZE];
+	
+	def RPG_VERSION = 0.801;
+	def RPG_ISBETA = -1; //1 for beta, 0 for release, -1 for alpha.
+	
+	float Version(){ return RPG_VERSION; }
+	float Beta() { return RPG_ISBETA; }
+	namespace dice
+	{
+		int roll(int sides)
+		{
+			return Rand(sides)+1;
+		}
+	}
+	
+}
 
 STRUCT script spells
 {
@@ -235,13 +261,7 @@ void Blit	( int layer,
  * To draw to a user created bitmap, pass its pointer to 'bitmap target'.
 */
 
-namespace dice
-{
-	int roll(int sides)
-	{
-		return Rand(sides)+1;
-	}
-}
+
 
 STRUCT script statsmenu
 {
@@ -675,7 +695,9 @@ global script Init
 {
 	void run()
 	{
-		vital.init({1, 16, 0, 20, 0, dice::roll(6), dice::roll(6), dice::roll(6), dice::roll(6), dice::roll(6), dice::roll(6), dice::roll(6), dice::roll(6) });
+		//rpg::data[rpg::VERSION] = RPG_VERSION;
+		//rpg::data[rpg::BETA] = RPG_ISBETA;
+		vital.init({1, 16, 0, 20, 0, rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6) });
 		//for ( int q = 0; q < 13; ++q ) LogPrint("vital.stat[] %d is %d \n", q, vital.stat[q]);
 		//level, hp, mp, gold, exp, str, dex, wis, con, cha, mind, soul, luck, last };
 		//statsmenu.init({1, statsmenu.X, statsmenu.Y, -1, -1, -1, statsmenu.COLOUR, statsmenu.FONT, statsmenu.FONT_H, 
@@ -685,6 +707,14 @@ global script Init
 			statsmenu.FONT_W, statsmenu.KERN, statsmenu.BG, statsmenu.bWidth, statsmenu.bHeight, statsmenu.msg, -1);
 		
 		statsmenu.setMessages(1, 5);
+		
+		switch(rpg::Beta())
+		{
+			case -1: LogPrint("RPG.zh Status: %s \n", "ALPHA"); break;
+			case 1: LogPrint("RPG.zh Status: %s \n", "BETA"); break;
+			default: LogPrint("RPG.zh Status: %s \n", "RELEASE"); break;
+		}
+		LogPrint("RPG.zh Version: %f \n", rpg::Version());
 	}
 }
 
