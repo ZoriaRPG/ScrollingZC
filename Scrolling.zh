@@ -2,8 +2,8 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// v0.8.2                 ///
-/// 9th May, 2019          ///
+/// v0.8.3                 ///
+/// 10th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
 // v0.2.0 : Added Solidity
@@ -39,6 +39,7 @@
 // v0.8.1 : Minor adjustments to enemy drawing code, to clear, resize, and reprime the bitmap, per enemy. 
 // v0.8.2 : Fixed reading of spell string datum.
 // v0.8.2 : Added rpg namespace. Moved dice namespace inside it. Added version control values.
+// v0.8.3 : Improvements to spell drawing/init.
 
 
 
@@ -79,8 +80,9 @@ STRUCT script spells
 {
 	spelltype current;
 	enum{ spStr, spCost, spEffect, spDuration, spLast };
+	enum { dispColumn, dispRow, dispLast };
 	int data[warp, spLast]; //[<int>warp]; //2d array
-	
+	int display[dispLast];
 	
 	void cast(spelltype spell)
 	{
@@ -106,12 +108,15 @@ STRUCT script spells
 		
 	}
 	//6,7,8,9,10
-	void init(int first_str, int last_str) //stores the string ID, the cost, and the effect for each spell, using ths string editor
+	void init(int first_str, int last_str, int columns, int rows) //stores the string ID, the cost, and the effect for each spell, using ths string editor
 	//string format is: 
 	//name 000 @effect
 	//example: 
 	//blaze 8 @flash
 	{
+		display[dispColumn] = columns; //used when we draw them.
+		display[dispRow] = rows;
+		
 		int sz = SizeOfArray(data);
 		LogPrint("array spells.data[] is size %d \n", sz);
 		//string format SPELLNAME 000 @effects
@@ -174,9 +179,23 @@ STRUCT script spells
 			//	the_effect[pos] = chr[w];
 				
 			//}
+			//int aa[2]; aa[1] = 
 			LogPrint("Spell Effect is: %s \n", effect_buf);
-			if ( !strcmp(the_effect, "none") ) data[q*warp+spEffect] = FXnone;
-			if ( !strcmp(the_effect, "flash") ) data[q*warp+spEffect] = FXflash;
+			switch(effect_buf[1])
+			{
+				case 'n': 
+				case 'N': LogPrint("Storing spell type %s \n", "none"); data[q*warp+spEffect] = FXnone; break;
+				case 'f':
+				case 'F': LogPrint("Storing spell type %s \n", "flash");  data[q*warp+spEffect] = FXflash; break;
+				default: break;
+			}
+			
+			//String literal errors, and possible issue with strcmp() -Z
+			//int none="@none";
+			//int flash= "@flash";
+			//Trace((strcmp(effect_buf,flash)));
+			//if ( !(strcmp(effect_buf,none)) ) { LogPrint("Storing spell type %s \n", "none"); data[q*warp+spEffect] = FXnone; }
+			//if ( !strcmp(effect_buf,flash) ) { LogPrint("Storing spell type %s \n", "flash");  data[q*warp+spEffect] = FXflash; }
 			
 			
 		}
@@ -727,7 +746,7 @@ hero script h_init
 		bitmaps.Init();
 		//statsmenu.setMessages(1, 5);
 		this->CollDetection = false;
-		spells.init(6,10);
+		spells.init(6,10, 2, 5);
 	}
 }
 
@@ -960,7 +979,7 @@ dmapdata script scroll
 			
 			
 			NoAction();
-			
+			Waitdraw();
 			Waitframe();
 		}
 	}
