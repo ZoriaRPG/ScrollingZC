@@ -2,8 +2,8 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// v0.8.3                 ///
-/// 10th May, 2019         ///
+/// ALPHA v0.9.0           ///
+/// 9th May, 2019          ///
 //////////////////////////////
 // v0.1.0 : Initial Base
 // v0.2.0 : Added Solidity
@@ -40,6 +40,8 @@
 // v0.8.2 : Fixed reading of spell string datum.
 // v0.8.2 : Added rpg namespace. Moved dice namespace inside it. Added version control values.
 // v0.8.3 : Improvements to spell drawing/init.
+// v0.9.0 : Now draw to screen on layer 0, with invisible passive subscreen.
+//        : Removed manual enemy/sprite draws, player sprite draws, and rearranged layer ordering in general.
 
 
 
@@ -320,7 +322,7 @@ STRUCT script statsmenu
 	}
 	void draw()
 	{
-		int curmsg[256]; int curvalue[10];
+		
 		int text_y = 4; int len_x;
 		//LogPrint("current number of options is: %d \n", data[numOptions]);
 		//for ( int q = 0; q < SizeOfArray(msg); ++q )
@@ -331,6 +333,7 @@ STRUCT script statsmenu
 		{
 			//LogPrint("Current message in draw() is %d \n", msg[q]);
 			//messagedata md = Game->LoadMessageData(msg[q]);
+			int curmsg[256]; int curvalue[10];
 			Game->GetMessage(msg[q], curmsg);
 			//TraceS(curmsg);
 			//md->Get(curmsg);
@@ -344,18 +347,21 @@ STRUCT script statsmenu
 			spacing[q] = strlen(curvalue); //Chars are variable width. We need a text map of them as an enum. 
 			//for ( int ww = 0; curvalue[ww] != 0; ++ww ) len_x += data[font_width]; //Get numerical text width
 			//LogPrint("Menu message is: %s \n", curmsg);
+			//bitty->Clear(0);
 			bitty->Rectangle(0, 0, 0, bitty->Width-1, bitty->Height-1, 0x4F, -1, 0,0,0,true,128);
 			bitty->Rectangle(0, 1, 1, bitty->Width-2, bitty->Height-2, 0x01, -1, 0,0,0,true,128);
 			bitty->Rectangle(0, 2, 2, bitty->Width-3, bitty->Height-3, 0x4F, -1, 0,0,0,true,128);
 			bitty->DrawString(6,4, text_y, data[font], data[colour], -1, 0, curmsg, 128);
+			//LogPrint("Drawing stats menu text: %s \n", curmsg);
 			bitty->DrawString(6,bitty->Width - 18, text_y, data[font], data[colour], -1, 0, curvalue, 128);
+			//LogPrint("Drawing stats menu text: %s \n", curvalue);
 			text_y += data[font_height] + data[kerning];
 			//wipe itoa buffer
 			for ( int a = 0; a < 10; ++a ) curvalue[a] = 0;
 			
 		}
-		
-		bitty->Blit(7, bitmaps.scrn, 0, 0, bitty->Width, bitty->Height, data[x], data[y], bitty->Width, bitty->Height, 0,0,0,((encounter.valid) ? 0 : BITDX_TRANS),0,false); 
+		//bitty->Write(6,"statsmenu.png",true);
+		bitty->Blit(6, -2, 0, 0, bitty->Width, bitty->Height, data[x], data[y], bitty->Width, bitty->Height, 0,0,0,((encounter.valid) ? 0 : BITDX_TRANS),0,false); 
 	}
 	void setCurMessage(int m)
 	{
@@ -633,7 +639,7 @@ npc script enemy
 			//	this->CSet, 0, 0, 0, 0, 0, /*this->Flip*/ 0, false, 128);
 			//bitmaps.enemyText->DrawTile(0, 0,0,/*this->OriginalTile*/ 473, 1, 1,
 			//	this->CSet, 0, 0, 0, 0, 0, /*this->Flip*/ 0, true, 128);
-			bitty->FastTile(0, 0, 0, this->Tile, this->CSet, 128);
+			//bitty->FastTile(0, 0, 0, this->Tile, this->CSet, 128);
 			//LogPrint("Drawing %d tile to enemyBUF. \n", this->Tile);
 			//bitmaps.enemyText->Write(6, "enemtext.png", true);
 			Waitframe();
@@ -646,12 +652,12 @@ npc script enemy
 	{
 		//LogPrint("n->Misc[REL_X] is %d \n", n->Misc[REL_X]);
 		//LogPrint("n->Misc[REL_Y] is %d \n", n->Misc[REL_Y]);
-		bitmaps.enemyText->Blit(6, bitmaps.scrn, 0,0, bitmaps.enemyText->Width, bitmaps.enemyText->Height,
+		//bitmaps.enemyText->Blit(6, bitmaps.scrn, 0,0, bitmaps.enemyText->Width, bitmaps.enemyText->Height,
 			//n->Misc[REL_X], 
 			//n->Misc[REL_Y], 
 			//100,100,
-			n->X, n->Y,
-			bitmaps.enemyText->Width, bitmaps.enemyText->Height, 0,0,0,0,0, true);
+			//n->X, n->Y,
+			//bitmaps.enemyText->Width, bitmaps.enemyText->Height, 0,0,0,0,0, true);
 			//if ( !jj )
 			//{
 			//	++jj;
@@ -722,7 +728,7 @@ global script Init
 		//statsmenu.init({1, statsmenu.X, statsmenu.Y, -1, -1, -1, statsmenu.COLOUR, statsmenu.FONT, statsmenu.FONT_H, 
 		//	statsmenu.FONT_W, statsmenu.KERN, statsmenu.BG, statsmenu.bWidth, statsmenu.bHeight, statsmenu.msg, -1});
 		statsmenu.init();
-		statsmenu.setMenuProperties(1, statsmenu.X, statsmenu.Y, -1, 5, statsmenu.COLOUR, statsmenu.FONT, statsmenu.FONT_H,
+		statsmenu.setMenuProperties(1, statsmenu.X, -56, -1, 5, statsmenu.COLOUR, statsmenu.FONT, statsmenu.FONT_H,
 			statsmenu.FONT_W, statsmenu.KERN, statsmenu.BG, statsmenu.bWidth, statsmenu.bHeight, statsmenu.msg, -1);
 		
 		statsmenu.setMessages(1, 5);
@@ -766,28 +772,28 @@ dmapdata script scroll
 		//top strip
 		for ( int q = 0; q < 256*18; q+= 256 )
 		{
-			bitmaps.border->Blit(6, bitmaps.overscan, 0, 0, bitmaps.border->Width, bitmaps.border->Height, q, 0, 
+			bitmaps.border->Blit(0, bitmaps.overscan, 0, 0, bitmaps.border->Width, bitmaps.border->Height, q, 0, 
 			bitmaps.border->Width, bitmaps.border->Height,0,0,0,0,0,false);
 		}
 		//left side
 		for ( int q = 0; q < 176*10; q+=176 )
 		{
 			
-			bitmaps.border->Blit(6, bitmaps.overscan, 0, 0, bitmaps.border->Width, bitmaps.border->Height, 0, q, 
+			bitmaps.border->Blit(0, bitmaps.overscan, 0, 0, bitmaps.border->Width, bitmaps.border->Height, 0, q, 
 			bitmaps.border->Width, bitmaps.border->Height,0,0,0,0,0,false);
 		}
 		//right side
 		for ( int q = 0; q < 176*10; q+=176 )
 		{
 			
-			bitmaps.border->Blit(6, bitmaps.overscan, 0, 0, bitmaps.border->Width, bitmaps.border->Height, 256*17, q, 
+			bitmaps.border->Blit(0, bitmaps.overscan, 0, 0, bitmaps.border->Width, bitmaps.border->Height, 256*17, q, 
 			bitmaps.border->Width, bitmaps.border->Height,0,0,0,0,0,false);
 		}
 		//bottom strip
 		for ( int q = 0; q < 256*18; q+=256 )
 		{
 			
-			bitmaps.border->Blit(6, bitmaps.overscan, 0, 0, bitmaps.border->Width, bitmaps.border->Height, q, 176*9, 
+			bitmaps.border->Blit(0, bitmaps.overscan, 0, 0, bitmaps.border->Width, bitmaps.border->Height, q, 176*9, 
 			bitmaps.border->Width, bitmaps.border->Height,0,0,0,0,0,false);
 		}
 		
@@ -798,7 +804,7 @@ dmapdata script scroll
 		//draw screens to large map bitmap
 		for(int i=0; i<128; i++)
 		{
-			bitmaps.fullmap->DrawScreen(6, 1, i, (i%16)*256, Floor(i/16)*176, 0);
+			bitmaps.fullmap->DrawScreen(0, 1, i, (i%16)*256, Floor(i/16)*176, 0);
 		}
 		//and draw solidity &c to its counterparts
 		for(int i=0; i<128; i++)
@@ -808,32 +814,32 @@ dmapdata script scroll
 		
 		for(int i=0; i<128; i++)
 		{
-			bitmaps.fullmap_type->DrawScreenComboTypes(6, 1, i, (i%16)*256, Floor(i/16)*176, 0);
+			bitmaps.fullmap_type->DrawScreenComboTypes(0, 1, i, (i%16)*256, Floor(i/16)*176, 0);
 		}
 		for(int i=0; i<128; i++)
 		{
-			bitmaps.fullmap_flag->DrawScreenComboFlags(6, 1, i, (i%16)*256, Floor(i/16)*176, 0);
+			bitmaps.fullmap_flag->DrawScreenComboFlags(0, 1, i, (i%16)*256, Floor(i/16)*176, 0);
 		}
 		for(int i=0; i<128; i++)
 		{
-			bitmaps.fullmap_iflag->DrawScreenComboIFlags(6, 1, i, (i%16)*256, Floor(i/16)*176, 0);
+			bitmaps.fullmap_iflag->DrawScreenComboIFlags(0, 1, i, (i%16)*256, Floor(i/16)*176, 0);
 		}
 		
 		//copy the large map and its mask counterparts to the OVERSCAN bitmaps
-		bitmaps.fullmap->Blit(6, bitmaps.overscan, 0, 0, bitmaps.fullmap->Width, bitmaps.fullmap->Height, 256, 176, 
+		bitmaps.fullmap->Blit(0, bitmaps.overscan, 0, 0, bitmaps.fullmap->Width, bitmaps.fullmap->Height, 256, 176, 
 			bitmaps.fullmap->Width, bitmaps.fullmap->Height,0,0,0,0,0,false);
 		
-		bitmaps.fullmap_solid->Blit(6, bitmaps.overscan_solid, 0, 0, bitmaps.fullmap_solid->Width, bitmaps.fullmap_solid->Height, 256, 176, 
+		bitmaps.fullmap_solid->Blit(0, bitmaps.overscan_solid, 0, 0, bitmaps.fullmap_solid->Width, bitmaps.fullmap_solid->Height, 256, 176, 
 			bitmaps.fullmap_solid->Width, bitmaps.fullmap_solid->Height,0,0,0,0,0,false);
 		
 		
-		bitmaps.fullmap_type->Blit(6, bitmaps.overscan_type, 0, 0, bitmaps.fullmap_type->Width, bitmaps.fullmap_type->Height, 256, 176, 
+		bitmaps.fullmap_type->Blit(0, bitmaps.overscan_type, 0, 0, bitmaps.fullmap_type->Width, bitmaps.fullmap_type->Height, 256, 176, 
 			bitmaps.fullmap_type->Width, bitmaps.fullmap_type->Height,0,0,0,0,0,false);
 		
-		bitmaps.fullmap_flag->Blit(6, bitmaps.overscan_flag, 0, 0, bitmaps.fullmap_flag->Width, bitmaps.fullmap_flag->Height, 256, 176, 
+		bitmaps.fullmap_flag->Blit(0, bitmaps.overscan_flag, 0, 0, bitmaps.fullmap_flag->Width, bitmaps.fullmap_flag->Height, 256, 176, 
 			bitmaps.fullmap_flag->Width, bitmaps.fullmap_flag->Height,0,0,0,0,0,false);
 		
-		bitmaps.fullmap_iflag->Blit(6, bitmaps.overscan_iflag, 0, 0, bitmaps.fullmap_iflag->Width, bitmaps.fullmap_iflag->Height, 256, 176, 
+		bitmaps.fullmap_iflag->Blit(0, bitmaps.overscan_iflag, 0, 0, bitmaps.fullmap_iflag->Width, bitmaps.fullmap_iflag->Height, 256, 176, 
 			bitmaps.fullmap_iflag->Width, bitmaps.fullmap_iflag->Height,0,0,0,0,0,false);
 		//scrn->Rectangle(6, 0, 0, 255, 175, 0x00, 1, 0, 0, 0, true, 128);
 		//scrn->DrawLayer(6, 1, 0x01, 0, 0, 0, 0, 128);
@@ -848,8 +854,8 @@ dmapdata script scroll
 			Hero->X = ( 16*8 )-8; //Fixed coordinates int he centre of the screen.
 			Hero->Y = (16*7.5)-56-8;
 			//LogPrint("Hero->Tile is: %d \n", Hero->Tile);
-			bitmaps.herosprite->Clear(0);
-			bitmaps.herosprite->FastTile(6, 0,0,Hero->Tile, 6, 128);
+			//bitmaps.herosprite->Clear(0);
+			//bitmaps.herosprite->FastTile(6, 0,0,Hero->Tile, 6, 128);
 			
 			if ( Hero->PressEx4 ) bitmaps.Save();
 			
@@ -960,10 +966,10 @@ dmapdata script scroll
 			//yPos = Clamp(yPos, 0, 176*7);
 			
 			//blit the current screen slice from the OVERSCAN bitmap, to the temp bitmap used to render the screen.
-			bitmaps.scrn->BlitTo(6, bitmaps.overscan, xPos, yPos, 256, 256, 0, 0, bitmaps.resized->Width, bitmaps.resized->Height, 0, 0, 0, 0, 0, false);
+			bitmaps.scrn->BlitTo(0, bitmaps.overscan, xPos, yPos, 256, 256, 0, 0, bitmaps.resized->Width, bitmaps.resized->Height, 0, 0, 0, 0, 0, false);
 			if ( Hero->PressEx2 ) encounter.init(xPos,yPos);
 			if ( encounter.valid ) encounter.draw();
-			statsmenu.draw();
+			
 			if ( Hero->PressEx1 ) { encounter.valid = 0; mapInfo.canScroll = true; } //end the encounter.
 			int sW = 128;
 			int sH = 128;
@@ -971,11 +977,12 @@ dmapdata script scroll
 			for ( int q = Screen->NumNPCs(); q > 0; --q )
 			{
 				npc n = Screen->LoadNPC(q);
-				enemy.draw(n);
+				//enemy.draw(n);
 			}
-			bitmaps.scrn->Blit(7, -2, 0, 0, 256, 256, 0, -56, 256, 256, 0, 0, 0, 0, 0, false);
+			bitmaps.scrn->Blit(0, -2, 0, 0, 256, 256, 0, -56, 256, 256, 0, 0, 0, 0, 0, false);
+			statsmenu.draw();
 			//blit the player sprite to the video bitmap. 
-			if ( !encounter.valid ) bitmaps.herosprite->Blit(7, -2, 0, 0, 16, 16, Hero->X, Hero->Y, 16, 16, 0, 0, 0, (( Hero->Dir == DIR_LEFT ) ? BITDX_VFLIP : 0), 0, true);
+			//if ( !encounter.valid ) bitmaps.herosprite->Blit(7, -2, 0, 0, 16, 16, Hero->X, Hero->Y, 16, 16, 0, 0, 0, (( Hero->Dir == DIR_LEFT ) ? BITDX_VFLIP : 0), 0, true);
 			
 			
 			NoAction();
