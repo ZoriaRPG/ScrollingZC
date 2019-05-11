@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.1.1           ///
+/// ALPHA v1.1.2           ///
 /// 11th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -48,6 +48,7 @@
 // v1.1.0 : Refactored enemies. ISSUE: Enemies clump on screen edges because their coordinates cannot move offscreen.
 //        : All sprites now move, at least. 
 // v1.1.1 : Remove some unused code blocks. 
+// v1.1.2 : dmapdata script scrolling now uses args d0 and d1 to set the scrolling area dimensions (in screens).
 
 
 
@@ -1060,7 +1061,7 @@ dmapdata script scroll
 						
 						int temp_x_pos = xPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 						//xPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
-						if ( temp_x_pos >= 0 && temp_x_pos <= (256*15) ) //Might need to extend the <= value out a bit
+						if ( temp_x_pos >= 0 && temp_x_pos <= (256*(screens_wide)) ) //Might need to extend the <= value out a bit
 						{
 							xPos = temp_x_pos;
 						}
@@ -1103,7 +1104,7 @@ dmapdata script scroll
 						
 						int temp_x_pos = xPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 						//xPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
-						if ( temp_x_pos >= 0 && temp_x_pos <= (256*15) )  //Might need to extend the <= value out a bit
+						if ( temp_x_pos >= 0 && temp_x_pos <= (256*(screens_wide)) )  //Might need to extend the <= value out a bit
 						{
 							xPos = temp_x_pos;
 						}
@@ -1146,7 +1147,7 @@ dmapdata script scroll
 						
 						int temp_y_pos = yPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 						//xPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
-						if ( temp_y_pos >= 0 && temp_y_pos <= (176*7) )  //Might need to extend the <= value out a bit
+						if ( temp_y_pos >= 0 && temp_y_pos <= (176*screens_high) )  //Might need to extend the <= value out a bit
 						{
 							yPos = temp_y_pos;
 						}
@@ -1187,7 +1188,7 @@ dmapdata script scroll
 						//yPos+=5;
 						int temp_y_pos = yPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 						//xPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
-						if ( temp_y_pos >= 0 && temp_y_pos <= (176*7) )  //Might need to extend the <= value out a bit
+						if ( temp_y_pos >= 0 && temp_y_pos <= (176*screens_high) )  //Might need to extend the <= value out a bit
 						{
 							yPos = temp_y_pos;
 						}
