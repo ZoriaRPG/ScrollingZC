@@ -86,7 +86,8 @@ npc script walking
 							for ( q = 0; q < curstep; ++q )
 							{
 								if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth/2), 
-									16+scroll.yPos+this->Y+56 + 1)))
+									//16+scroll.yPos+this->Y+56 + 1)))
+									16+scroll.yPos+this->Y + 1)))
 								{
 									this->Y += ((!curstep) ? 0 : 1);
 									
