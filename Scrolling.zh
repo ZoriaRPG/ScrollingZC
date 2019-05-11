@@ -45,6 +45,8 @@
 // v1.0.0 : Added scrolling for weapons, refactored scrolling for enemies. 
 //        : Added STRUCTs lweapons, eweapons, game. Move frame into STRUCT game.
 //        : Added global active script to control the framecount. 
+// v1.1.0 : Refactored enemies. ISSUE: Enemies clump on screen edges because their coordinates cannot move offscreen.
+//        : All sprites now move, at least. 
 
 
 
@@ -506,6 +508,7 @@ STRUCT script bitmaps
 {
 	bitmap resized; //Used for 3d effects
 	bitmap scrn; //used to draw the screen
+	bitmap blanktile;
 	
 	//Map bitmaps.
 	bitmap fullmap; //the current, full map
@@ -533,6 +536,7 @@ STRUCT script bitmaps
 	{
 		resized->Clear(0);	
 		scrn->Clear(0);	
+		blanktile->Clear(0);
 		fullmap->Clear(0);	
 		fullmap_solid->Clear(0);	
 		fullmap_type->Clear(0);	
@@ -554,6 +558,7 @@ STRUCT script bitmaps
 	{
 		resized = Game->CreateBitmap(256, 256);
 		scrn = Game->CreateBitmap(256, 256);
+		blanktile = Game->CreateBitmap(16,16);
 		
 		fullmap = Game->CreateBitmap(256*16, 176*8);
 		fullmap_solid = Game->CreateBitmap(256*16, 176*8);
@@ -589,7 +594,7 @@ STRUCT script bitmaps
 		overscan->Write(0,"sb_OSCfullmap.png", true);
 		overscan_solid->Write(0,"sb_OSCfullmap_solid.png", true);
 		overscan_type->Write(0,"sb_OSCfullmap_type.png", true);
-		overscan_flag->Write(0,"sb_OSCfullmap_flag.png", true);
+		overscan_flag->Write(1,"sb_OSCfullmap_flag.png", true);
 		overscan_iflag->Write(0,"sb_OSCfullmap_iflag.png", true);
 		border->Write(0,"sb_border.png", true);
 		
@@ -601,11 +606,15 @@ STRUCT script bitmaps
 
 STRUCT script mapInfo
 {
+	def blankMap = 4;
+	def blankScreen = 0; 
 	int curMap;
 	int curScreen;
 	bool canScroll = true;
 	int ScreenAt(int x, int y)
 	{
+		y -= Hero->Y+56; //Centre on the player. 
+		x -= Hero->X;
 		int scr, sc_x, sc_y;
 		//Trace(x); Trace(y);
 		for ( int q = 256; q < x; q += 256 ) 
@@ -642,6 +651,16 @@ STRUCT script mapInfo
 		
 		return id;
 	}
+	int getEnemyIndex(int id)
+	{
+		if ( !mapInfo.curMap ) return 0; 
+		mapdata md = Game->LoadMapData(mapInfo.curMap, mapInfo.curScreen);
+		//LogPrint("Current Virtual Map is %d \n", mapInfo.curMap);
+		//LogPrint("Current Virtual Screen is %d \n", mapInfo.curScreen);
+		//LogPrint("Current Virtual Screen Enemy is %d \n", md->Enemy[id]);
+		
+		return md->Enemy[id];
+	}
 	//Get information about combos on the maps. 
 	bool comboS(int xpos, int ypos)
 	{
@@ -659,21 +678,247 @@ STRUCT script mapInfo
 	}
 	int comboF(int xpos, int ypos)
 	{
-		return (Graphics->GetPixel(bitmaps.overscan_flag,xpos+Hero->X + 8, ypos+Hero->Y+56+8) * 10000);
+		//return (Graphics->GetPixel(bitmaps.overscan_flag,xpos+Hero->X + 8, ypos+Hero->Y+56+8) * 10000);
+		return (Graphics->GetPixel(bitmaps.overscan_flag,xpos, ypos) * 10000);
 	}
 	int comboI(int xpos, int ypos)
 	{
 		return (Graphics->GetPixel(bitmaps.overscan_iflag,xpos+Hero->X + 8, ypos+Hero->Y+56+8) * 10000);
+	}
+	int checkSpawnFlags(int xpos, int ypos)
+	{
+		npc the_enemy;
+		mapdata md = Game->LoadMapData(mapInfo.curMap, mapInfo.curScreen);
+		for ( int q = 0; q < 176; ++q ) 
+		{
+			int f = md->ComboF[q];
+			if ( md->ComboF[q] >= CF_ENEMY0 && md->ComboF[q] <= CF_ENEMY9 )
+			{
+				the_enemy = Screen->CreateNPC(md->Enemy[md->ComboF[q]-CF_ENEMY0]);
+				the_enemy->X = ComboX(q); the_enemy->Y = ComboY(q); 
+				md->ComboF[q] = 0;
+			}
+			/*
+			switch(f)
+			{
+				
+				case CF_ENEMY0: 
+				{ 
+					//LogPrint("Found flag %s \n", "CF_ENEMY0");
+					//LogPrint("Found a flag at x pos: %d \n", q);
+					//LogPrint("Found a flag at y pos: %d \n", w);
+					//176 ypos first
+					//the_enemy = Screen->CreateNPC(getEnemyIndex(0)); ++enemy.count;
+					the_enemy = Screen->CreateNPC(md->Enemy[0]);
+					the_enemy->X = ComboX(q); the_enemy->Y = ComboY(q)-56; 
+					LogPrint("the_enemy->X is: %d \n", the_enemy->X);
+					LogPrint("the_enemy->Y is: %d \n", the_enemy->Y);
+					//bitmaps.blanktile->Blit(6, bitmaps.overscan_flag, 0, 0, bitmaps.blanktile->Width, bitmaps.blanktile->Height, xpos+q, ypos+w, bitmaps.blanktile->Width, bitmaps.blanktile->Height,0,0,0,0,0,false);
+					md->ComboF[q] = 0;
+					break;
+			
+				}
+				default: break;
+			}
+			*/
+		}
+		
+		/*
+		for ( int q = 0; q < 256; q += 16 )
+		{ 
+			
+			for ( int w = 0; w < 176; w += 16 )
+			{
+				
+				
+				int combopos = ComboAt(q,w);
+				int combox = ComboX(combopos);
+				int comboy = ComboY(combopos);
+				//int f = comboF(xpos+combox,xpos+comboy);
+				
+				//if ( enemy.count > 10 ) break;
+				//if ( f ) LogPrint("flag is: %d \n", f);
+				switch(f)
+				{
+					
+					case CF_ENEMY0: 
+					{ 
+						//LogPrint("Found flag %s \n", "CF_ENEMY0");
+						LogPrint("Found a flag at x pos: %d \n", q);
+						LogPrint("Found a flag at y pos: %d \n", w);
+						//176 ypos first
+						the_enemy = Screen->CreateNPC(getEnemyIndex(0)); ++enemy.count;
+						the_enemy->X = combox; the_enemy->Y = comboy-56; 
+						LogPrint("the_enemy->X is: %d \n", the_enemy->X);
+						LogPrint("the_enemy->Y is: %d \n", the_enemy->Y);
+						//bitmaps.blanktile->Blit(6, bitmaps.overscan_flag, 0, 0, bitmaps.blanktile->Width, bitmaps.blanktile->Height, xpos+q, ypos+w, bitmaps.blanktile->Width, bitmaps.blanktile->Height,0,0,0,0,0,false);
+						bitmaps.overscan_flag->Rectangle(0, xpos+q,xpos+w, xpos+q+15, ypos+w+15, 0x11, -1, 0,0,0, true, 128);
+						bitmaps.overscan_flag->Rectangle(0, 0, 0, 15, 15, 0x11, -1, 0,0,0, true, 128);
+						
+						break;
+				
+					}
+					case CF_ENEMY1: 
+					{ 
+					
+						
+						the_enemy = Screen->CreateNPC(getEnemyIndex(1)); ++enemy.count;
+						the_enemy->X = q; the_enemy->Y = w;
+						bitmaps.blanktile->Blit(6, bitmaps.overscan_flag, 0, 0, bitmaps.blanktile->Width, bitmaps.blanktile->Height, xpos+q, ypos+w, bitmaps.blanktile->Width, bitmaps.blanktile->Height,0,0,0,0,0,false);
+						
+						
+						break;
+						
+					}
+					case CF_ENEMY2:
+					{						
+					
+						//if ( enemy.count < 10 ) 
+						//{
+							the_enemy = Screen->CreateNPC(getEnemyIndex(2)); ++enemy.count;
+							the_enemy->X = q; the_enemy->Y = w;
+							bitmaps.blanktile->Blit(6, bitmaps.overscan_flag, 0, 0, bitmaps.blanktile->Width, bitmaps.blanktile->Height, xpos+q, ypos+w, bitmaps.blanktile->Width, bitmaps.blanktile->Height,0,0,0,0,0,false);
+						
+						//}
+						if ( !(w%8) ) 
+						{ 
+							if ( w < 247 ) w+= 8; 
+						}
+						break;
+						
+					}
+					case CF_ENEMY3:
+					{ 
+						
+						if ( enemy.count < 10 ) 
+						{
+							the_enemy = Screen->CreateNPC(getEnemyIndex(3)); ++enemy.count;
+							the_enemy->X = q; the_enemy->Y = w;
+						}
+						if ( !(w%8) ) 
+						{ 
+							if ( w < 247 ) w+= 8;
+						}break;
+					}
+					case CF_ENEMY4:
+					{ 
+						if ( enemy.count < 10 ) 
+						{
+							the_enemy = Screen->CreateNPC(getEnemyIndex(4)); ++enemy.count;
+							the_enemy->X = q; the_enemy->Y = w; 
+						}
+						if ( !(w%8) ) 
+						{ 
+							if ( w < 247 ) w+= 8;  
+							
+						}
+						break;
+					}
+					case CF_ENEMY5:
+					{ 
+						if ( enemy.count < 10 ) 
+						{
+							the_enemy = Screen->CreateNPC(getEnemyIndex(5)); ++enemy.count;
+							the_enemy->X = q; the_enemy->Y = w;
+						}
+						if ( !(w%8) ) 
+						{ 
+							if ( w < 247 ) w+= 8;  
+							
+						}
+						break;
+					}
+					case CF_ENEMY6:
+					{ 
+						if ( enemy.count < 10 ) 
+						{
+							the_enemy = Screen->CreateNPC(getEnemyIndex(6)); ++enemy.count;
+							the_enemy->X = q; the_enemy->Y = w; 
+						}
+						if ( !(w%8) ) 
+						{ 
+							if ( w < 247 ) w+= 8;  
+						}
+						break;
+					}
+					case CF_ENEMY7:
+					{ 
+						if ( enemy.count < 10 ) 
+						{
+							the_enemy = Screen->CreateNPC(getEnemyIndex(7)); ++enemy.count;
+							the_enemy->X = q; the_enemy->Y = w; 
+						}
+						if ( !(w%8) ) 
+						{ 
+							if ( w < 247 ) w+= 8;  
+						
+						}
+						break;
+					}
+					case CF_ENEMY8:
+					{ 
+						if ( enemy.count < 10 ) 
+						{
+							the_enemy = Screen->CreateNPC(getEnemyIndex(8)); ++enemy.count;
+							the_enemy->X = q; the_enemy->Y = w; 
+							LogPrint("the_enemy->X is: %d \n", the_enemy->X);
+							LogPrint("the_enemy->Y is: %d \n", the_enemy->Y);
+						}
+						if ( !(w%8) ) 
+						{ 
+							if ( w < 247 ) w+= 8;  
+						}
+						break;
+					}
+					case CF_ENEMY9: 
+					{ 
+						if ( enemy.count < 10 ) 
+						{
+							the_enemy = Screen->CreateNPC(getEnemyIndex(9)); ++enemy.count;
+							the_enemy->X = q; the_enemy->Y = w; 
+						}
+						if ( !(w%8) ) 
+						{ 
+							if ( w < 247 ) w+= 8;  
+						}
+						break;
+					}
+					
+				}
+				if ( the_enemy->isValid() ) 
+				{
+					the_enemy->Y -= 56;
+					the_enemy = NULL;
+				}
+				
+			}
+			
+		}
+		*/
+	}
+}
+
+itemsprite script items
+{
+	void run(){}
+	void scroll(item l, int x, int y, int xPos, int yPos)
+	{
+		l->X +=  x * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+		l->Y +=  y * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 	}
 }
 
 //enemy that appears on scrolling draws.
 npc script enemy
 {
-	
+	int count;
 	def REL_X = 16; //->Misc
 	def REL_Y = 17;
 	int jj;
+	void updateCount()
+	{
+		count = Screen->NumNPCs();
+	}
 	void run()
 	{
 		//this->Misc[REL_X] = this->X; //Update every game.frame, and blit the sprite based on this.
@@ -704,6 +949,30 @@ npc script enemy
 	{
 		l->X +=  x * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 		l->Y +=  y * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+		
+		
+		/*
+		int new_x = l->X +  x * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+		int new_y = l->Y +  y * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+		l->X = new_x;
+		l->Y = new_y;
+		*/
+		//if ( !mapInfo.comboS(new_x,l->X) ) l->X = new_x;
+		//if ( !mapInfo.comboS(l->X,new_y) ) l->Y = new_y;
+			
+		/*
+		x *= ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+		y *= ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+		
+		if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+x, yPos+y)))
+		{
+			l->X += x;
+			l->Y += y;
+		}
+		*/
+		
+		
+		
 	}
 	
 	void draw(npc n)
@@ -843,14 +1112,21 @@ global script active
 
 dmapdata script scroll
 {
+	int scrollcountx;
+	int scrollcounty;
+	int lastScrn;
 	void run(int screens_wide, int screens_high) //adjust the scrolling field based on this, rather than on fixed sizes. 
 	{
+		int xPos = 256; int yPos = 176; //Positional data starts here. 
 		mapInfo.curMap = this->Map;
-		
+		mapInfo.curScreen = mapInfo.ScreenAt(xPos,yPos);
+		lastScrn = mapInfo.curScreen;
+		scrollcountx = 0;
+		scrollcounty = 0;
 		// bitmap image1 = Game->AllocateBitmap();
 		// image1->Read(0,"test.png");
 		bitmaps.Clear();
-		bitmaps.border->DrawScreen(0, 2, 0, 0, 0, 0);
+		bitmaps.border->DrawScreen(mapInfo.blankMap, mapInfo.blankScreen, 0, 0, 0, 0);
 		
 		//Add OVERSCAN to visible map. 
 		//top strip
@@ -931,7 +1207,10 @@ dmapdata script scroll
 		bitmap b = Game->CreateBitmap(256, 256);
 		
 		int pPosX, pPosY;
-		int xPos = 256; int yPos = 176; //Positional data starts here. 
+		
+		//Load initial enemies. 
+		mapInfo.checkSpawnFlags(xPos, yPos);
+		
 		while(1)
 		{
 			
@@ -961,7 +1240,8 @@ dmapdata script scroll
 						//xPos-=5;
 					{
 						//Trace(bitmaps.overscan_solid->GetPixel(0,xPos+Hero->X - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] )), yPos+Hero->Y+8) );
-					
+						scrollcountx -= (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+						
 						int temp_x_pos = xPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 						//xPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
 						if ( temp_x_pos >= 0 && temp_x_pos <= (256*15) ) //Might need to extend the <= value out a bit
@@ -985,7 +1265,12 @@ dmapdata script scroll
 							eweapon l = Screen->LoadEWeapon(q);
 							eweapons.scroll(l, 1, 0, xPos, yPos);
 						}
-							
+						for ( int q = Screen->NumItems(); q > 0; --q )
+						{
+							item l = Screen->LoadItem(q);
+							items.scroll(l, 1, 0, xPos, yPos);
+						}
+						mapInfo.curScreen = mapInfo.ScreenAt(xPos,yPos);
 						
 					}
 				}
@@ -998,6 +1283,8 @@ dmapdata script scroll
 					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X + 16 + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] )), yPos+Hero->Y+56+8) ) )
 					{
 						//xPos+=5;
+						scrollcountx += (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+						
 						int temp_x_pos = xPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 						//xPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
 						if ( temp_x_pos >= 0 && temp_x_pos <= (256*15) )  //Might need to extend the <= value out a bit
@@ -1023,6 +1310,12 @@ dmapdata script scroll
 							eweapon l = Screen->LoadEWeapon(q);
 							eweapons.scroll(l, -1, 0, xPos, yPos);
 						}
+						for ( int q = Screen->NumItems(); q > 0; --q )
+						{
+							item l = Screen->LoadItem(q);
+							items.scroll(l, -1, 0, xPos, yPos);
+						}
+						mapInfo.curScreen = mapInfo.ScreenAt(xPos,yPos);
 					}
 				}
 					
@@ -1033,6 +1326,8 @@ dmapdata script scroll
 				
 					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, yPos+Hero->Y + 56 - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ))) ) )
 					{
+						scrollcounty -= (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+						
 						int temp_y_pos = yPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 						//xPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
 						if ( temp_y_pos >= 0 && temp_y_pos <= (176*7) )  //Might need to extend the <= value out a bit
@@ -1057,6 +1352,12 @@ dmapdata script scroll
 							eweapon l = Screen->LoadEWeapon(q);
 							eweapons.scroll(l, 0, 1, xPos, yPos);
 						}
+						for ( int q = Screen->NumItems(); q > 0; --q )
+						{
+							item l = Screen->LoadItem(q);
+							items.scroll(l, 0, 1, xPos, yPos);
+						}
+						mapInfo.curScreen = mapInfo.ScreenAt(xPos,yPos);
 					}
 				}
 				else if(Hero->InputDown)
@@ -1065,6 +1366,8 @@ dmapdata script scroll
 					//LogPrint("yPos is: %d \n", yPos);
 					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, 16+yPos+Hero->Y+56 + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ))) ))
 					{
+						scrollcounty += (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+						
 						//yPos+=5;
 						int temp_y_pos = yPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 						//xPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
@@ -1090,6 +1393,12 @@ dmapdata script scroll
 							eweapon l = Screen->LoadEWeapon(q);
 							eweapons.scroll(l, 0, -1, xPos, yPos);
 						}
+						for ( int q = Screen->NumItems(); q > 0; --q )
+						{
+							item l = Screen->LoadItem(q);
+							items.scroll(l, 0, -1, xPos, yPos);
+						}
+						mapInfo.curScreen = mapInfo.ScreenAt(xPos,yPos);
 					}
 				}
 			}
@@ -1112,12 +1421,20 @@ dmapdata script scroll
 			}
 			bitmaps.scrn->Blit(0, -2, 0, 0, 256, 256, 0, -56, 256, 256, 0, 0, 0, 0, 0, false);
 			if ( rpg::DRAWSTATS ) statsmenu.draw();
+			//if ( (scrollcountx && !(Abs(scrollcountx)&16)) || (scrollcounty && !(Abs(scrollcounty)&16)) )
+			
+			if ( lastScrn != mapInfo.curScreen ) //We are on a new virtual screen
+			{
+				mapInfo.checkSpawnFlags(xPos, yPos);
+				lastScrn = mapInfo.curScreen;
+			}
 			//blit the player sprite to the video bitmap. 
 			//if ( !encounter.valid ) bitmaps.herosprite->Blit(7, -2, 0, 0, 16, 16, Hero->X, Hero->Y, 16, 16, 0, 0, 0, (( Hero->Dir == DIR_LEFT ) ? BITDX_VFLIP : 0), 0, true);
 			
 			
 			//NoAction();
 			Waitdraw();
+			enemy.updateCount();
 			Waitframe();
 		}
 	}
