@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.2.2           ///
+/// ALPHA v1.2.3           ///
 /// 11th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -54,6 +54,7 @@
 //        : Revisions to npc script walking, to control cooldown, add constantwalk (ad arg d0), and modify overall speed.
 // v1.2.2 : Check three spots on the side of the npc for collision with solid. We still have BUGS to fix with the npc script 'walking'.
 //        : DO we WANT a 56 offset on all Y checks in the npc script walking?  
+// v1.2.3 : Don't allow randomised dir changes for npc script walking to become stuck in a perpetual loop.
 
 
 script typedef untyped STRUCT;
@@ -958,13 +959,41 @@ npc script walking
 		{
 			if ( !dirclk )
 			{
-				int olddir = this->Dir;
-				//change direction
-				do 
+				int validDirs[3];
+				switch(this->Dir)
 				{
-					this->Dir = Rand(4);
-				} until(this->Dir != olddir );
-				newdir = false;
+					case DIR_UP:
+					{
+						validDirs[0] = DIR_DOWN;
+						validDirs[1] = DIR_LEFT;
+						validDirs[2] = DIR_RIGHT;
+						break;
+					}
+					case DIR_LEFT:
+					{
+						validDirs[0] = DIR_DOWN;
+						validDirs[1] = DIR_UP;
+						validDirs[2] = DIR_RIGHT;
+						break;
+					}
+					case DIR_DOWN:
+					{
+						validDirs[0] = DIR_LEFT;
+						validDirs[1] = DIR_UP;
+						validDirs[2] = DIR_RIGHT;
+						break;
+					}
+					case DIR_RIGHT:
+					{
+						validDirs[0] = DIR_LEFT;
+						validDirs[1] = DIR_UP;
+						validDirs[2] = DIR_DOWN;
+						break;
+					}
+					default: break;
+				}
+				//change direction
+				this->Dir = validDirs[Rand(3)];
 				
 			}
 			else 
@@ -1005,12 +1034,41 @@ npc script walking
 								}
 								else //complete move in another direction
 								{
-									int olddir = this->Dir;
-									
-									do 
+									int validDirs[3];
+									switch(this->Dir)
 									{
-										this->Dir = Rand(4);
-									} until(this->Dir != olddir );
+										case DIR_UP:
+										{
+											validDirs[0] = DIR_DOWN;
+											validDirs[1] = DIR_LEFT;
+											validDirs[2] = DIR_RIGHT;
+											break;
+										}
+										case DIR_LEFT:
+										{
+											validDirs[0] = DIR_DOWN;
+											validDirs[1] = DIR_UP;
+											validDirs[2] = DIR_RIGHT;
+											break;
+										}
+										case DIR_DOWN:
+										{
+											validDirs[0] = DIR_LEFT;
+											validDirs[1] = DIR_UP;
+											validDirs[2] = DIR_RIGHT;
+											break;
+										}
+										case DIR_RIGHT:
+										{
+											validDirs[0] = DIR_LEFT;
+											validDirs[1] = DIR_UP;
+											validDirs[2] = DIR_DOWN;
+											break;
+										}
+										default: break;
+									}
+									//change direction
+									this->Dir = validDirs[Rand(3)];
 									
 								}
 							}
@@ -1034,14 +1092,43 @@ npc script walking
 									
 									
 								}
-								else 
+								else //complete move in another direction
 								{
-									int olddir = this->Dir;
-									
-									do 
+									int validDirs[3];
+									switch(this->Dir)
 									{
-										this->Dir = Rand(4);
-									} until(this->Dir != olddir );
+										case DIR_UP:
+										{
+											validDirs[0] = DIR_DOWN;
+											validDirs[1] = DIR_LEFT;
+											validDirs[2] = DIR_RIGHT;
+											break;
+										}
+										case DIR_LEFT:
+										{
+											validDirs[0] = DIR_DOWN;
+											validDirs[1] = DIR_UP;
+											validDirs[2] = DIR_RIGHT;
+											break;
+										}
+										case DIR_DOWN:
+										{
+											validDirs[0] = DIR_LEFT;
+											validDirs[1] = DIR_UP;
+											validDirs[2] = DIR_RIGHT;
+											break;
+										}
+										case DIR_RIGHT:
+										{
+											validDirs[0] = DIR_LEFT;
+											validDirs[1] = DIR_UP;
+											validDirs[2] = DIR_DOWN;
+											break;
+										}
+										default: break;
+									}
+									//change direction
+									this->Dir = validDirs[Rand(3)];
 									
 								}
 							}
@@ -1065,14 +1152,43 @@ npc script walking
 									
 									
 								}
-								else 
+								else //complete move in another direction
 								{
-									int olddir = this->Dir;
-									
-									do 
+									int validDirs[3];
+									switch(this->Dir)
 									{
-										this->Dir = Rand(4);
-									} until(this->Dir != olddir );
+										case DIR_UP:
+										{
+											validDirs[0] = DIR_DOWN;
+											validDirs[1] = DIR_LEFT;
+											validDirs[2] = DIR_RIGHT;
+											break;
+										}
+										case DIR_LEFT:
+										{
+											validDirs[0] = DIR_DOWN;
+											validDirs[1] = DIR_UP;
+											validDirs[2] = DIR_RIGHT;
+											break;
+										}
+										case DIR_DOWN:
+										{
+											validDirs[0] = DIR_LEFT;
+											validDirs[1] = DIR_UP;
+											validDirs[2] = DIR_RIGHT;
+											break;
+										}
+										case DIR_RIGHT:
+										{
+											validDirs[0] = DIR_LEFT;
+											validDirs[1] = DIR_UP;
+											validDirs[2] = DIR_DOWN;
+											break;
+										}
+										default: break;
+									}
+									//change direction
+									this->Dir = validDirs[Rand(3)];
 									
 								}
 							}
@@ -1096,14 +1212,43 @@ npc script walking
 									
 									
 								}
-								else 
+								else //complete move in another direction
 								{
-									int olddir = this->Dir;
-									
-									do 
+									int validDirs[3];
+									switch(this->Dir)
 									{
-										this->Dir = Rand(4);
-									} until(this->Dir != olddir );
+										case DIR_UP:
+										{
+											validDirs[0] = DIR_DOWN;
+											validDirs[1] = DIR_LEFT;
+											validDirs[2] = DIR_RIGHT;
+											break;
+										}
+										case DIR_LEFT:
+										{
+											validDirs[0] = DIR_DOWN;
+											validDirs[1] = DIR_UP;
+											validDirs[2] = DIR_RIGHT;
+											break;
+										}
+										case DIR_DOWN:
+										{
+											validDirs[0] = DIR_LEFT;
+											validDirs[1] = DIR_UP;
+											validDirs[2] = DIR_RIGHT;
+											break;
+										}
+										case DIR_RIGHT:
+										{
+											validDirs[0] = DIR_LEFT;
+											validDirs[1] = DIR_UP;
+											validDirs[2] = DIR_DOWN;
+											break;
+										}
+										default: break;
+									}
+									//change direction
+									this->Dir = validDirs[Rand(3)];
 									
 								}
 							}
