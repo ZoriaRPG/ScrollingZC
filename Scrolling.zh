@@ -2,8 +2,8 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.0.0           ///
-/// 9th May, 2019          ///
+/// ALPHA v1.1.1           ///
+/// 11th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
 // v0.2.0 : Added Solidity
@@ -47,6 +47,7 @@
 //        : Added global active script to control the framecount. 
 // v1.1.0 : Refactored enemies. ISSUE: Enemies clump on screen edges because their coordinates cannot move offscreen.
 //        : All sprites now move, at least. 
+// v1.1.1 : Remove some unused code blocks. 
 
 
 
@@ -698,203 +699,10 @@ STRUCT script mapInfo
 				the_enemy->X = ComboX(q); the_enemy->Y = ComboY(q); 
 				md->ComboF[q] = 0;
 			}
-			/*
-			switch(f)
-			{
-				
-				case CF_ENEMY0: 
-				{ 
-					//LogPrint("Found flag %s \n", "CF_ENEMY0");
-					//LogPrint("Found a flag at x pos: %d \n", q);
-					//LogPrint("Found a flag at y pos: %d \n", w);
-					//176 ypos first
-					//the_enemy = Screen->CreateNPC(getEnemyIndex(0)); ++enemy.count;
-					the_enemy = Screen->CreateNPC(md->Enemy[0]);
-					the_enemy->X = ComboX(q); the_enemy->Y = ComboY(q)-56; 
-					LogPrint("the_enemy->X is: %d \n", the_enemy->X);
-					LogPrint("the_enemy->Y is: %d \n", the_enemy->Y);
-					//bitmaps.blanktile->Blit(6, bitmaps.overscan_flag, 0, 0, bitmaps.blanktile->Width, bitmaps.blanktile->Height, xpos+q, ypos+w, bitmaps.blanktile->Width, bitmaps.blanktile->Height,0,0,0,0,0,false);
-					md->ComboF[q] = 0;
-					break;
 			
-				}
-				default: break;
-			}
-			*/
 		}
 		
-		/*
-		for ( int q = 0; q < 256; q += 16 )
-		{ 
-			
-			for ( int w = 0; w < 176; w += 16 )
-			{
-				
-				
-				int combopos = ComboAt(q,w);
-				int combox = ComboX(combopos);
-				int comboy = ComboY(combopos);
-				//int f = comboF(xpos+combox,xpos+comboy);
-				
-				//if ( enemy.count > 10 ) break;
-				//if ( f ) LogPrint("flag is: %d \n", f);
-				switch(f)
-				{
-					
-					case CF_ENEMY0: 
-					{ 
-						//LogPrint("Found flag %s \n", "CF_ENEMY0");
-						LogPrint("Found a flag at x pos: %d \n", q);
-						LogPrint("Found a flag at y pos: %d \n", w);
-						//176 ypos first
-						the_enemy = Screen->CreateNPC(getEnemyIndex(0)); ++enemy.count;
-						the_enemy->X = combox; the_enemy->Y = comboy-56; 
-						LogPrint("the_enemy->X is: %d \n", the_enemy->X);
-						LogPrint("the_enemy->Y is: %d \n", the_enemy->Y);
-						//bitmaps.blanktile->Blit(6, bitmaps.overscan_flag, 0, 0, bitmaps.blanktile->Width, bitmaps.blanktile->Height, xpos+q, ypos+w, bitmaps.blanktile->Width, bitmaps.blanktile->Height,0,0,0,0,0,false);
-						bitmaps.overscan_flag->Rectangle(0, xpos+q,xpos+w, xpos+q+15, ypos+w+15, 0x11, -1, 0,0,0, true, 128);
-						bitmaps.overscan_flag->Rectangle(0, 0, 0, 15, 15, 0x11, -1, 0,0,0, true, 128);
-						
-						break;
-				
-					}
-					case CF_ENEMY1: 
-					{ 
-					
-						
-						the_enemy = Screen->CreateNPC(getEnemyIndex(1)); ++enemy.count;
-						the_enemy->X = q; the_enemy->Y = w;
-						bitmaps.blanktile->Blit(6, bitmaps.overscan_flag, 0, 0, bitmaps.blanktile->Width, bitmaps.blanktile->Height, xpos+q, ypos+w, bitmaps.blanktile->Width, bitmaps.blanktile->Height,0,0,0,0,0,false);
-						
-						
-						break;
-						
-					}
-					case CF_ENEMY2:
-					{						
-					
-						//if ( enemy.count < 10 ) 
-						//{
-							the_enemy = Screen->CreateNPC(getEnemyIndex(2)); ++enemy.count;
-							the_enemy->X = q; the_enemy->Y = w;
-							bitmaps.blanktile->Blit(6, bitmaps.overscan_flag, 0, 0, bitmaps.blanktile->Width, bitmaps.blanktile->Height, xpos+q, ypos+w, bitmaps.blanktile->Width, bitmaps.blanktile->Height,0,0,0,0,0,false);
-						
-						//}
-						if ( !(w%8) ) 
-						{ 
-							if ( w < 247 ) w+= 8; 
-						}
-						break;
-						
-					}
-					case CF_ENEMY3:
-					{ 
-						
-						if ( enemy.count < 10 ) 
-						{
-							the_enemy = Screen->CreateNPC(getEnemyIndex(3)); ++enemy.count;
-							the_enemy->X = q; the_enemy->Y = w;
-						}
-						if ( !(w%8) ) 
-						{ 
-							if ( w < 247 ) w+= 8;
-						}break;
-					}
-					case CF_ENEMY4:
-					{ 
-						if ( enemy.count < 10 ) 
-						{
-							the_enemy = Screen->CreateNPC(getEnemyIndex(4)); ++enemy.count;
-							the_enemy->X = q; the_enemy->Y = w; 
-						}
-						if ( !(w%8) ) 
-						{ 
-							if ( w < 247 ) w+= 8;  
-							
-						}
-						break;
-					}
-					case CF_ENEMY5:
-					{ 
-						if ( enemy.count < 10 ) 
-						{
-							the_enemy = Screen->CreateNPC(getEnemyIndex(5)); ++enemy.count;
-							the_enemy->X = q; the_enemy->Y = w;
-						}
-						if ( !(w%8) ) 
-						{ 
-							if ( w < 247 ) w+= 8;  
-							
-						}
-						break;
-					}
-					case CF_ENEMY6:
-					{ 
-						if ( enemy.count < 10 ) 
-						{
-							the_enemy = Screen->CreateNPC(getEnemyIndex(6)); ++enemy.count;
-							the_enemy->X = q; the_enemy->Y = w; 
-						}
-						if ( !(w%8) ) 
-						{ 
-							if ( w < 247 ) w+= 8;  
-						}
-						break;
-					}
-					case CF_ENEMY7:
-					{ 
-						if ( enemy.count < 10 ) 
-						{
-							the_enemy = Screen->CreateNPC(getEnemyIndex(7)); ++enemy.count;
-							the_enemy->X = q; the_enemy->Y = w; 
-						}
-						if ( !(w%8) ) 
-						{ 
-							if ( w < 247 ) w+= 8;  
-						
-						}
-						break;
-					}
-					case CF_ENEMY8:
-					{ 
-						if ( enemy.count < 10 ) 
-						{
-							the_enemy = Screen->CreateNPC(getEnemyIndex(8)); ++enemy.count;
-							the_enemy->X = q; the_enemy->Y = w; 
-							LogPrint("the_enemy->X is: %d \n", the_enemy->X);
-							LogPrint("the_enemy->Y is: %d \n", the_enemy->Y);
-						}
-						if ( !(w%8) ) 
-						{ 
-							if ( w < 247 ) w+= 8;  
-						}
-						break;
-					}
-					case CF_ENEMY9: 
-					{ 
-						if ( enemy.count < 10 ) 
-						{
-							the_enemy = Screen->CreateNPC(getEnemyIndex(9)); ++enemy.count;
-							the_enemy->X = q; the_enemy->Y = w; 
-						}
-						if ( !(w%8) ) 
-						{ 
-							if ( w < 247 ) w+= 8;  
-						}
-						break;
-					}
-					
-				}
-				if ( the_enemy->isValid() ) 
-				{
-					the_enemy->Y -= 56;
-					the_enemy = NULL;
-				}
-				
-			}
-			
-		}
-		*/
+		
 	}
 }
 
@@ -947,10 +755,18 @@ npc script enemy
 	}	
 	void scroll(npc l, int x, int y, int xPos, int yPos)
 	{
-		l->X +=  x * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
-		l->Y +=  y * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+		int new_x, new_y;
+		new_x = l->X +  x * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+		new_y = l->Y +  y * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 		
 		
+		l->X = new_x;
+		l->Y = new_y;
+		//if ( new_x < 0 || new_x > 240 ) l->DrawXOffset = -32768;
+		//else l->DrawXOffset = 0;
+		//if ( new_y < 0 || new_y > 160 ) l->DrawYOffset = -32768;
+		
+		else l->DrawXOffset = 0;
 		/*
 		int new_x = l->X +  x * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 		int new_y = l->Y +  y * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
