@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.2.1           ///
+/// ALPHA v1.2.2           ///
 /// 11th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -52,6 +52,8 @@
 // v1.2.0 : Added npc script walking, for custom enemy walking cycles.
 // v1.2.1 : Bugfixes to npc script walking.
 //        : Revisions to npc script walking, to control cooldown, add constantwalk (ad arg d0), and modify overall speed.
+// v1.2.2 : Check three spots on the side of the npc for collision with solid. We still have BUGS to fix with the npc script 'walking'.
+//        : DO we WANT a 56 offset on all Y checks in the npc script walking?  
 
 
 script typedef untyped STRUCT;
@@ -991,7 +993,11 @@ npc script walking
 							for ( q = 0; q < curstep; ++q )
 							{
 								if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*0.5), 
-									scroll.yPos+this->Y + 56 - 1) ) )
+									scroll.yPos+this->Y-1) ) && 
+								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X, 
+									scroll.yPos+this->Y-1) ) &&
+								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+this->TileWidth-1, 
+									scroll.yPos+this->Y-1) ) )
 								{
 									this->Y -= ((!curstep) ? 0 : 1);
 									
@@ -1016,8 +1022,13 @@ npc script walking
 						{
 							for ( q = 0; q < curstep; ++q )
 							{
-								if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth/2), 
-									16+scroll.yPos+this->Y+56 + 1)))
+								if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*0.5), 
+									16+scroll.yPos+this->Y + 1)) &&
+								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X, 
+									16+scroll.yPos+this->Y + 1)) &&
+								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth-1), 
+									16+scroll.yPos+this->Y + 1)))
+								
 								{
 									this->Y += ((!curstep) ? 0 : 1);
 									
@@ -1042,7 +1053,11 @@ npc script walking
 							for ( q = 0; q < curstep; ++q )
 							{
 								if(!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
-									scroll.yPos+this->Y+56+(this->TileHeight/2)) ) )
+									scroll.yPos+this->Y+56+(this->TileHeight*0.5)) ) &&
+								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
+									scroll.yPos+this->Y+56) ) &&
+								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
+									scroll.yPos+this->Y+56+(this->TileHeight-1)) ) )
 
 
 								{
@@ -1069,7 +1084,11 @@ npc script walking
 							for ( q = 0; q < curstep; ++q )
 							{
 								if(!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
-									scroll.yPos+this->Y+56+(this->TileHeight*0.5)) ) )
+									scroll.yPos+this->Y+56+(this->TileHeight*0.5)) ) &&
+								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
+									scroll.yPos+this->Y+56) ) &&
+								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
+									scroll.yPos+this->Y+56+(this->TileHeight-1)) ) )
 
 
 								{
