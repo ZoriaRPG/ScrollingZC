@@ -70,7 +70,7 @@ namespace rpg
 	//int data[RPG_DATA_SIZE];
 	
 	def DRAWSTATS = 0;
-	def RPG_VERSION = 0.801;
+	def RPG_VERSION = 1.101;
 	def RPG_ISBETA = -1; //1 for beta, 0 for release, -1 for alpha.
 	
 	float Version(){ return RPG_VERSION; }
@@ -766,7 +766,7 @@ npc script enemy
 		//else l->DrawXOffset = 0;
 		//if ( new_y < 0 || new_y > 160 ) l->DrawYOffset = -32768;
 		
-		else l->DrawXOffset = 0;
+		//else l->DrawXOffset = 0;
 		/*
 		int new_x = l->X +  x * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
 		int new_y = l->Y +  y * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
