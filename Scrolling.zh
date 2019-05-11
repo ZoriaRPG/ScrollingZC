@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v0.9.0           ///
+/// ALPHA v1.0.0           ///
 /// 9th May, 2019          ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -42,6 +42,9 @@
 // v0.8.3 : Improvements to spell drawing/init.
 // v0.9.0 : Now draw to screen on layer 0, with invisible passive subscreen.
 //        : Removed manual enemy/sprite draws, player sprite draws, and rearranged layer ordering in general.
+// v1.0.0 : Added scrolling for weapons, refactored scrolling for enemies. 
+//        : Added STRUCTs lweapons, eweapons, game. Move frame into STRUCT game.
+//        : Added global active script to control the framecount. 
 
 
 
@@ -63,6 +66,7 @@ namespace rpg
 	//def RPG_DATA_SIZE = 64;
 	//int data[RPG_DATA_SIZE];
 	
+	def DRAWSTATS = 0;
 	def RPG_VERSION = 0.801;
 	def RPG_ISBETA = -1; //1 for beta, 0 for release, -1 for alpha.
 	
@@ -73,6 +77,52 @@ namespace rpg
 		int roll(int sides)
 		{
 			return Rand(sides)+1;
+		}
+	}
+	
+}
+
+lweapon script lweapons
+{
+	void run(){}
+	
+	void scroll(lweapon l, int x, int y, int xPos, int yPos)
+	{
+		switch(l->ID)
+		{
+			case LW_SWORD: 
+			case LW_WAND: 
+			case LW_CANDLE: 
+			case LW_HAMMER: 
+			case LW_HOOKSHOT: 
+			case LW_CANEOFBYRNA: 
+				break;
+			
+			
+			default:
+			{
+				l->X +=  x * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+				l->Y +=  y * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+			}
+		}
+		
+	}
+	
+}
+
+lweapon script eweapons
+{
+	void run(){}
+	
+	void scroll(eweapon l, int x, int y, int xPos, int yPos)
+	{
+		switch(l->ID)
+		{
+			default:
+			{
+				l->X +=  x * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+				l->Y +=  y * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+			}
 		}
 	}
 	
@@ -595,7 +645,9 @@ STRUCT script mapInfo
 	//Get information about combos on the maps. 
 	bool comboS(int xpos, int ypos)
 	{
-		return (Graphics->GetPixel(bitmaps.overscan_solid,xpos+Hero->X + 8, ypos+Hero->Y+56+8));
+		//return (Graphics->GetPixel(bitmaps.overscan_solid,xpos+Hero->X + 8, ypos+Hero->Y+56+8));
+		//return bitmaps.overscan_solid->GetPixel(0,xpos+Hero->X + 8, ypos+Hero->Y+56+8);
+		//return bitmaps.overscan_solid->GetPixel(0,xpos+Hero->X + 8, ypos+Hero->Y+56+8);
 	}
 	//int getComboSolidity()
 	//{
@@ -624,7 +676,7 @@ npc script enemy
 	int jj;
 	void run()
 	{
-		//this->Misc[REL_X] = this->X; //Update every frame, and blit the sprite based on this.
+		//this->Misc[REL_X] = this->X; //Update every game.frame, and blit the sprite based on this.
 		//this->Misc[REL_Y] = this->Y;
 		bitmap bitty = bitmaps.enemyText;
 		
@@ -648,6 +700,12 @@ npc script enemy
 		
 		
 	}	
+	void scroll(npc l, int x, int y, int xPos, int yPos)
+	{
+		l->X +=  x * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+		l->Y +=  y * ( ( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+	}
+	
 	void draw(npc n)
 	{
 		//LogPrint("n->Misc[REL_X] is %d \n", n->Misc[REL_X]);
@@ -756,13 +814,39 @@ hero script h_init
 	}
 }
 
+
+STRUCT script game
+{
+	
+	int frame = 0;
+	
+}
+
+STRUCT script character
+{
+	int steps[2]={1,2};
+}
+	
+
+global script active
+{
+	void run()
+	{
+		while(1)
+		{
+			++game.frame;
+			Waitframe();
+		}
+	}
+}
+		
+
 dmapdata script scroll
 {
 	void run(int screens_wide, int screens_high) //adjust the scrolling field based on this, rather than on fixed sizes. 
 	{
 		mapInfo.curMap = this->Map;
-		int frame = 0;
-		int lsteps[2]={1,2};
+		
 		// bitmap image1 = Game->AllocateBitmap();
 		// image1->Read(0,"test.png");
 		bitmaps.Clear();
@@ -850,7 +934,7 @@ dmapdata script scroll
 		int xPos = 256; int yPos = 176; //Positional data starts here. 
 		while(1)
 		{
-			++frame;
+			
 			Hero->X = ( 16*8 )-8; //Fixed coordinates int he centre of the screen.
 			Hero->Y = (16*7.5)-56-8;
 			//LogPrint("Hero->Tile is: %d \n", Hero->Tile);
@@ -872,12 +956,14 @@ dmapdata script scroll
 					//LogPrint("Solidity is: %f \n", Graphics->GetPixel(bitmaps.fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
 					//LogPrint("Hero->X is: %d \n", Hero->X);
 					//LogPrint("Hero->Y is: %d \n", Hero->Y);
-					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] )), yPos+Hero->Y+56+8) ) )
+					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] )), yPos+Hero->Y+56+8) ) )
 					//LogPrint("xPos is: %d \n", xPos);
 						//xPos-=5;
 					{
-						int temp_x_pos = xPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
-						//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						//Trace(bitmaps.overscan_solid->GetPixel(0,xPos+Hero->X - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] )), yPos+Hero->Y+8) );
+					
+						int temp_x_pos = xPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+						//xPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
 						if ( temp_x_pos >= 0 && temp_x_pos <= (256*15) ) //Might need to extend the <= value out a bit
 						{
 							xPos = temp_x_pos;
@@ -886,7 +972,18 @@ dmapdata script scroll
 						for ( int q = Screen->NumNPCs(); q > 0; --q )
 						{
 							npc n = Screen->LoadNPC(q);
-							n->X += (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
+							enemy.scroll(n, 1, 0, xPos, yPos);
+							//n->X += (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+						}
+						for ( int q = Screen->NumLWeapons(); q > 0; --q )
+						{
+							lweapon l = Screen->LoadLWeapon(q);
+							lweapons.scroll(l, 1, 0, xPos, yPos);
+						}
+						for ( int q = Screen->NumEWeapons(); q > 0; --q )
+						{
+							eweapon l = Screen->LoadEWeapon(q);
+							eweapons.scroll(l, 1, 0, xPos, yPos);
 						}
 							
 						
@@ -898,21 +995,33 @@ dmapdata script scroll
 					//LogPrint("Hero->X is: %d \n", Hero->X);
 					//LogPrint("Hero->Y is: %d \n", Hero->Y);
 					//LogPrint("xPos is: %d \n", xPos);
-					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X + 16 + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] )), yPos+Hero->Y+56+8) ) )
+					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X + 16 + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] )), yPos+Hero->Y+56+8) ) )
 					{
 						//xPos+=5;
-						int temp_x_pos = xPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
-						//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						int temp_x_pos = xPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+						//xPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
 						if ( temp_x_pos >= 0 && temp_x_pos <= (256*15) )  //Might need to extend the <= value out a bit
 						{
 							xPos = temp_x_pos;
 						}
 						//else, move the player sprite itself. 
-						//xPos += ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						//xPos += ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
 						for ( int q = Screen->NumNPCs(); q > 0; --q )
 						{
 							npc n = Screen->LoadNPC(q);
-							n->X -= (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
+							enemy.scroll(n, -1, 0, xPos, yPos);
+							//n->X -= (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+						}
+						
+						for ( int q = Screen->NumLWeapons(); q > 0; --q )
+						{
+							lweapon l = Screen->LoadLWeapon(q);
+							lweapons.scroll(l, -1, 0, xPos, yPos);
+						}
+						for ( int q = Screen->NumEWeapons(); q > 0; --q )
+						{
+							eweapon l = Screen->LoadEWeapon(q);
+							eweapons.scroll(l, -1, 0, xPos, yPos);
 						}
 					}
 				}
@@ -922,20 +1031,31 @@ dmapdata script scroll
 					//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
 					//LogPrint("yPos is: %d \n", yPos);
 				
-					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, yPos+Hero->Y + 56 - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ))) ) )
+					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, yPos+Hero->Y + 56 - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ))) ) )
 					{
-						int temp_y_pos = yPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
-						//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						int temp_y_pos = yPos - (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+						//xPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
 						if ( temp_y_pos >= 0 && temp_y_pos <= (176*7) )  //Might need to extend the <= value out a bit
 						{
 							yPos = temp_y_pos;
 						}
 						//else, move the player sprite itself. 
-						//yPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						//yPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
 						for ( int q = Screen->NumNPCs(); q > 0; --q )
 						{
 							npc n = Screen->LoadNPC(q);
-							n->Y += (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
+							enemy.scroll(n, 0, 1, xPos, yPos);
+							//n->Y += (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+						}
+						for ( int q = Screen->NumLWeapons(); q > 0; --q )
+						{
+							lweapon l = Screen->LoadLWeapon(q);
+							lweapons.scroll(l, 0, 1, xPos, yPos);
+						}
+						for ( int q = Screen->NumEWeapons(); q > 0; --q )
+						{
+							eweapon l = Screen->LoadEWeapon(q);
+							eweapons.scroll(l, 0, 1, xPos, yPos);
 						}
 					}
 				}
@@ -943,21 +1063,32 @@ dmapdata script scroll
 				{
 					//LogPrint("Solidity is: %f \n", Graphics->GetPixel(fullmap_solid,xPos+Hero->X, yPos+Hero->Y+56));
 					//LogPrint("yPos is: %d \n", yPos);
-					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, 16+yPos+Hero->Y+56 + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ))) ))
+					if (!(Graphics->GetPixel(bitmaps.overscan_solid,xPos+Hero->X+8, 16+yPos+Hero->Y+56 + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ))) ))
 					{
 						//yPos+=5;
-						int temp_y_pos = yPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
-						//xPos -= ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						int temp_y_pos = yPos + (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+						//xPos -= ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
 						if ( temp_y_pos >= 0 && temp_y_pos <= (176*7) )  //Might need to extend the <= value out a bit
 						{
 							yPos = temp_y_pos;
 						}
 						//else, move the player sprite itself. 
-						//yPos += ( ((frame&1)) ? lsteps[0] : lsteps[1] );
+						//yPos += ( ((game.frame&1)) ? character.steps[0] : character.steps[1] );
 						for ( int q = Screen->NumNPCs(); q > 0; --q )
 						{
 							npc n = Screen->LoadNPC(q);
-							n->Y -= (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((frame&1)) ? 2 : 0 ) : ( ((frame&1)) ? lsteps[0] : lsteps[1] ));
+							enemy.scroll(n, 0, -1, xPos, yPos);
+							//n->Y -= (( ( mapInfo.comboT(xPos,yPos) == CT_SLOWWALK ) ) ? ( ((game.frame&1)) ? 2 : 0 ) : ( ((game.frame&1)) ? character.steps[0] : character.steps[1] ));
+						}
+						for ( int q = Screen->NumLWeapons(); q > 0; --q )
+						{
+							lweapon l = Screen->LoadLWeapon(q);
+							lweapons.scroll(l, 0, -1, xPos, yPos);
+						}
+						for ( int q = Screen->NumEWeapons(); q > 0; --q )
+						{
+							eweapon l = Screen->LoadEWeapon(q);
+							eweapons.scroll(l, 0, -1, xPos, yPos);
 						}
 					}
 				}
@@ -980,12 +1111,12 @@ dmapdata script scroll
 				//enemy.draw(n);
 			}
 			bitmaps.scrn->Blit(0, -2, 0, 0, 256, 256, 0, -56, 256, 256, 0, 0, 0, 0, 0, false);
-			statsmenu.draw();
+			if ( rpg::DRAWSTATS ) statsmenu.draw();
 			//blit the player sprite to the video bitmap. 
 			//if ( !encounter.valid ) bitmaps.herosprite->Blit(7, -2, 0, 0, 16, 16, Hero->X, Hero->Y, 16, 16, 0, 0, 0, (( Hero->Dir == DIR_LEFT ) ? BITDX_VFLIP : 0), 0, true);
 			
 			
-			NoAction();
+			//NoAction();
 			Waitdraw();
 			Waitframe();
 		}
