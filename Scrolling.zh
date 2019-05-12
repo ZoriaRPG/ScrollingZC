@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.3.3           ///
+/// ALPHA v1.3.4           ///
 /// 12th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -64,6 +64,7 @@
 // v1.3.1 : Enemy step is once again modified by CT_SLOWWALK.
 // v1.3.2 : Remember to check if the enemy ignores SLow Walk combos. 
 // v1.3.3 : Remove unused vars from npc script walking, and re-implement frame ticker. 
+// v1.3.4 : Disabled logging in npc script walking.
 
 
 
@@ -1076,7 +1077,7 @@ npc script walking
 			{
 				--haltclk;
 				
-				LogPrint("NPC Can Walk? %s \n", (npcs::canWalk(this, curstep, this->Dir)) ? "true" : "false!");
+				//LogPrint("NPC Can Walk? %s \n", (npcs::canWalk(this, curstep, this->Dir)) ? "true" : "false!");
 				if (npcs::canWalk(this, curstep, this->Dir))
 				{
 					switch(this->Dir)
