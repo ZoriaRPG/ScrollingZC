@@ -1,3 +1,15 @@
+/* SUGGESTED VALUES
+
+Random rate: 120
+Halt Rate: 64
+Step Speed: 1
+
+Args <d3>: 40
+
+
+
+*/
+
 npc script walking
 {
 	int comboT(npc T)
