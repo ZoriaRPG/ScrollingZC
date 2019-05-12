@@ -2,8 +2,8 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.2.3           ///
-/// 11th May, 2019         ///
+/// ALPHA v1.2.5           ///
+/// 12th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
 // v0.2.0 : Added Solidity
@@ -56,6 +56,7 @@
 //        : DO we WANT a 56 offset on all Y checks in the npc script walking?  
 // v1.2.3 : Don't allow randomised dir changes for npc script walking to become stuck in a perpetual loop.
 // v1.2.4 : Fixes to npc script walking.
+// v1.2.5 : Refactor enemy script 'walking', and force enemies to clip out of being stuck. 
 
 script typedef untyped STRUCT;
 typedef const int def;
@@ -957,212 +958,250 @@ npc script walking
 		//int dirclk = Rand(this->Attributes[24], this->Attributes[25]);
 		int dirclk = 150;
 		int haltclk = 50;
+		int curx, cury, stuckclk; //used to check if we are stuck.
+		curx = this->X; cury = this->Y; 
 		while(this->isValid())
 		{
-			if ( !dirclk )
+			
+			//logic
+			
+			//move
+			//halt for a bit if not constantwalk
+			//check if it is time to change direction
+			//if it is, then we do a coinflip. heads, change, tails, do not change, reset the clk (random)
+			
+			slowwalk = comboT(this);
+			curstep = ( (slowwalk) ? ( (f&1) ? steps[1] : 0 ) : ( ( (f&1) ? steps[0] : steps[1]) ) ); //if it is a slow walk tile, reduce the step by half.
+			( (f&1) ? steps[0] : steps[1] ); //slow, fast
+			switch(this->Dir)
 			{
-				int validDirs[3];
-				switch(this->Dir)
+				case DIR_UP:
 				{
-					case DIR_UP:
+					for ( q = 0; q < curstep; ++q )
 					{
-						validDirs[0] = DIR_DOWN;
-						validDirs[1] = DIR_LEFT;
-						validDirs[2] = DIR_RIGHT;
-						break;
+						
+						if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*4), 
+							scroll.yPos+this->Y-1+56) ) 
+						&& //corners
+						!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X, 
+							scroll.yPos+this->Y-1+56) ) 
+						&&
+						!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*8)-1, 
+							scroll.yPos+this->Y-1+56) ) 
+						
+						)
+						{
+							this->Y -= ((!curstep) ? 0 : 1);
+							
+							
+						}
+						else //complete move in another direction
+						{
+							int validDirs[3] = { DIR_DOWN, DIR_LEFT, DIR_RIGHT };
+							
+							//change direction
+							this->Dir = validDirs[Rand(3)];
+							
+						}
 					}
-					case DIR_LEFT:
+					if ( curx == this->X && cury == this->Y ) 
 					{
-						validDirs[0] = DIR_DOWN;
-						validDirs[1] = DIR_UP;
-						validDirs[2] = DIR_RIGHT;
-						break;
+						LogPrint("Enemy%f  seems to be stuck \n", <int>this);
+						LogPrint("The current dir for enemy %d is %d \n", <int>this, this->Dir);
+						//this->Dir = Rand(4);
+						++stuckclk;
 					}
-					case DIR_DOWN:
-					{
-						validDirs[0] = DIR_LEFT;
-						validDirs[1] = DIR_UP;
-						validDirs[2] = DIR_RIGHT;
-						break;
-					}
-					case DIR_RIGHT:
-					{
-						validDirs[0] = DIR_LEFT;
-						validDirs[1] = DIR_UP;
-						validDirs[2] = DIR_DOWN;
-						break;
-					}
-					default: break;
+					else { curx = this->X; cury = this->Y;}
+
+					
+					break;
 				}
-				//change direction
-				this->Dir = validDirs[Rand(3)];
-				
-			}
-			else 
-			{
-				--dirclk;
-			}
-			if ( cooldown )
-			{
-				--cooldown;
-				Waitframe();
-			}
-			else
-			{
-				cooldown = this->Haltrate;
-				
-				if ( clk )
+				case DIR_DOWN:
 				{
-					slowwalk = comboT(this);
-					curstep = ( (slowwalk) ? ( (f&1) ? steps[1] : 0 ) : ( ( (f&1) ? steps[0] : steps[1]) ) ); //if it is a slow walk tile, reduce the step by half.
-					( (f&1) ? steps[0] : steps[1] ); //slow, fast
+					for ( q = 0; q < curstep; ++q )
+					{
+						if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*4), 
+							16+scroll.yPos+this->Y + 1+56)) 
+						 && //corners
+						!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X, 
+							16+scroll.yPos+this->Y + 1+56)) 
+						&&
+						!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*8)-1, 
+							16+scroll.yPos+this->Y + 1+56))
+					
+						)
+						
+						{
+							this->Y += ((!curstep) ? 0 : 1);
+							
+							
+						}
+						else //complete move in another direction
+						{
+							int validDirs[3] = { DIR_LEFT, DIR_UP, DIR_RIGHT };
+							
+							//change direction
+							this->Dir = validDirs[Rand(3)];
+							
+						}
+					}
+					if ( curx == this->X && cury == this->Y ) 
+					{
+						LogPrint("Enemy%f  seems to be stuck \n", <int>this);
+						LogPrint("The current dir for enemy %d is %d \n", <int>this, this->Dir);
+						//this->Dir = Rand(4);
+						++stuckclk;
+					}
+					else { curx = this->X; cury = this->Y;}
+					break;
+				}
+				case DIR_LEFT:
+				{
+					for ( q = 0; q < curstep; ++q )
+					{
+						if(!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
+							scroll.yPos+this->Y+56+(this->TileHeight*4)) ) 
+						&& //corners
+						!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
+							scroll.yPos+this->Y+56) ) 
+						&&
+						!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
+							scroll.yPos+this->Y+56+(this->TileHeight*8)-1) ) 
+						
+						)
+
+
+						{
+							this->X -= ((!curstep) ? 0 : 1);
+							
+							
+						}
+						else //complete move in another direction
+						{
+							int validDirs[3] = { DIR_DOWN, DIR_UP, DIR_RIGHT };
+							
+							//change direction
+							this->Dir = validDirs[Rand(3)];
+							
+						}
+					}
+					if ( curx == this->X && cury == this->Y ) 
+					{
+						LogPrint("Enemy%f  seems to be stuck \n", <int>this);
+						LogPrint("The current dir for enemy %d is %d \n", <int>this, this->Dir);
+						//this->Dir = Rand(4);
+						++stuckclk;
+					}
+					else { curx = this->X; cury = this->Y;}
+					break;
+				}
+				case DIR_RIGHT:
+				{
+					for ( q = 0; q < curstep; ++q )
+					{
+						if(!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
+							scroll.yPos+this->Y+56+(this->TileHeight*4)) ) 
+						&& //corners
+						!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
+							scroll.yPos+this->Y+56) ) 
+						&&
+						!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
+							scroll.yPos+this->Y+56+(this->TileHeight*8)-1) ) 
+						
+						)
+
+
+						{
+							this->X += ((!curstep) ? 0 : 1);
+							
+							
+						}
+						else //complete move in another direction
+						{
+							//LogPrint("Trying to change dir from dir %d \n", this->Dir);
+							int validDirs[3] = { DIR_LEFT, DIR_UP, DIR_DOWN };
+							
+							//change direction
+							this->Dir = validDirs[Rand(3)];
+							
+						}
+					}
+					if ( curx == this->X && cury == this->Y ) 
+					{
+						LogPrint("Enemy%f  seems to be stuck \n", <int>this);
+						LogPrint("The current dir for enemy %d is %d \n", <int>this, this->Dir);
+						//this->Dir = Rand(4);
+						++stuckclk;
+					}
+					else { curx = this->X; cury = this->Y;}
+					break;
+				}
+				default: break;
+			}//completed its move
+			--dirclk;
+			//halt between moves
+			if ( !constantwalk )
+			{
+				for ( int q = 0; q < haltclk; ++q ) Waitframe();
+			}
+			if ( dirclk <= 0 || stuckclk ) //time to change dir
+			{
+				if ( stuckclk ) 
+				{
+
+					LogPrint("Enemy was: %s \n", "stuck");
+					switch(this->Dir)
+					{
+						//try to move it out of a solid space. 
+						case DIR_UP: this->Y += 16; this->Dir = DIR_DOWN; break;
+						case DIR_DOWN: this->Y -=16; this->Dir = DIR_UP; break;
+						case DIR_LEFT: this->X +=16; this->Dir = DIR_RIGHT; break;
+						case DIR_RIGHT: this->X -=16; this->Dir = DIR_LEFT; break;
+					}
+					stuckclk = 0;
+				}
+				LogPrint("Time to %s \n", "change direction");
+				if ( (Rand(1)) ) //coin toss
+				{
+					int validDirs[3];
 					switch(this->Dir)
 					{
 						case DIR_UP:
 						{
-							for ( q = 0; q < curstep; ++q )
-							{
-								
-								if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*4), 
-									scroll.yPos+this->Y-1+56) ) 
-								&& //corners
-								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X, 
-									scroll.yPos+this->Y-1+56) ) 
-								&&
-								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*8)-1, 
-									scroll.yPos+this->Y-1+56) ) 
-								
-								)
-								{
-									this->Y -= ((!curstep) ? 0 : 1);
-									
-									
-								}
-								else //complete move in another direction
-								{
-									int validDirs[3] = { DIR_DOWN, DIR_LEFT, DIR_RIGHT };
-									
-									//change direction
-									this->Dir = validDirs[Rand(3)];
-									
-								}
-							}
-
-							
-							break;
-						}
-						case DIR_DOWN:
-						{
-							for ( q = 0; q < curstep; ++q )
-							{
-								if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*4), 
-									16+scroll.yPos+this->Y + 1+56)) 
-								 && //corners
-								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X, 
-									16+scroll.yPos+this->Y + 1+56)) 
-								&&
-								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*8)-1, 
-									16+scroll.yPos+this->Y + 1+56))
-							
-								)
-								
-								{
-									this->Y += ((!curstep) ? 0 : 1);
-									
-									
-								}
-								else //complete move in another direction
-								{
-									int validDirs[3] = { DIR_LEFT, DIR_UP, DIR_RIGHT };
-									
-									//change direction
-									this->Dir = validDirs[Rand(3)];
-									
-								}
-							}
-							
+							validDirs[0] = DIR_DOWN;
+							validDirs[1] = DIR_LEFT;
+							validDirs[2] = DIR_RIGHT;
 							break;
 						}
 						case DIR_LEFT:
 						{
-							for ( q = 0; q < curstep; ++q )
-							{
-								if(!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
-									scroll.yPos+this->Y+56+(this->TileHeight*4)) ) 
-								&& //corners
-								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
-									scroll.yPos+this->Y+56) ) 
-								&&
-								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
-									scroll.yPos+this->Y+56+(this->TileHeight*8)-1) ) 
-								
-								)
-
-
-								{
-									this->X -= ((!curstep) ? 0 : 1);
-									
-									
-								}
-								else //complete move in another direction
-								{
-									int validDirs[3] = { DIR_DOWN, DIR_UP, DIR_RIGHT };
-									
-									//change direction
-									this->Dir = validDirs[Rand(3)];
-									
-								}
-							}
-							
+							validDirs[0] = DIR_DOWN;
+							validDirs[1] = DIR_UP;
+							validDirs[2] = DIR_RIGHT;
+							break;
+						}
+						case DIR_DOWN:
+						{
+							validDirs[0] = DIR_LEFT;
+							validDirs[1] = DIR_UP;
+							validDirs[2] = DIR_RIGHT;
 							break;
 						}
 						case DIR_RIGHT:
 						{
-							for ( q = 0; q < curstep; ++q )
-							{
-								if(!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
-									scroll.yPos+this->Y+56+(this->TileHeight*4)) ) 
-								 //corners
-								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
-									scroll.yPos+this->Y+56) ) 
-								&&
-								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
-									scroll.yPos+this->Y+56+(this->TileHeight*8)-1) ) 
-								
-								)
-
-
-								{
-									this->X += ((!curstep) ? 0 : 1);
-									
-									
-								}
-								else //complete move in another direction
-								{
-									//LogPrint("Trying to change dir from dir %d \n", this->Dir);
-									int validDirs[3] = { DIR_LEFT, DIR_UP, DIR_DOWN };
-									
-									//change direction
-									this->Dir = validDirs[Rand(3)];
-									
-								}
-							}
-							
+							validDirs[0] = DIR_LEFT;
+							validDirs[1] = DIR_UP;
+							validDirs[2] = DIR_DOWN;
 							break;
 						}
 						default: break;
-					}//completed its move
-					--clk;
+					}
+					//change direction
+					this->Dir = validDirs[Rand(3)];
 				}
-				else 
-				{
-					//Repeat(this->Haltrate) Waitframe();
-					
-					clk = ( Rand(this->Attributes[22], this->Attributes[23]) );
-					
-					
-				}
+				dirclk = 150;
 			}
+			
 			Waitframe();
 		}
 	}
