@@ -18,7 +18,7 @@ npc script walking
 		int randomclk = this->Rate;
 		int haltclk = this->Haltrate;
 		int curstep = this->Step;
-
+		
 		while(this->isValid())
 		{
 			++f;
@@ -46,6 +46,7 @@ npc script walking
 			if ( haltclk > 0 ) 
 			{
 				--haltclk;
+				//LogPrint("NPC Can Walk? %s \n", (npcs::canWalk(this, curstep, this->Dir)) ? "true" : "false!");
 				if (npcs::canWalk(this, curstep, this->Dir))
 				{
 					switch(this->Dir)
@@ -95,10 +96,16 @@ npc script walking
 					//change direction
 					this->Dir = validDirs[Rand(3)];
 				}
+				
 			}
 			else
 			{
-				for ( int q = 0; q < HALT_FRAMES; ++q ) Waitframe();
+				int halfwaypoint = haltFrames*0.5;
+				for ( int q = 0; q < haltFrames; ++q ) 
+				{
+					if ( q == halfwaypoint ) this->Attack();
+					Waitframe();
+				}
 				haltclk = this->Haltrate;
 			}
 			Waitframe();

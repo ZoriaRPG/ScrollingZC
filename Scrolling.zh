@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.3.4           ///
+/// ALPHA v1.3.5           ///
 /// 12th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -65,6 +65,7 @@
 // v1.3.2 : Remember to check if the enemy ignores SLow Walk combos. 
 // v1.3.3 : Remove unused vars from npc script walking, and re-implement frame ticker. 
 // v1.3.4 : Disabled logging in npc script walking.
+// v1.3.5 : Added a call to this->Attack() during the enemy halt in npc script walking.
 
 
 
@@ -1126,7 +1127,12 @@ npc script walking
 			}
 			else
 			{
-				for ( int q = 0; q < HALT_FRAMES; ++q ) Waitframe();
+				int halfwaypoint = haltFrames*0.5;
+				for ( int q = 0; q < haltFrames; ++q ) 
+				{
+					if ( q == halfwaypoint ) this->Attack();
+					Waitframe();
+				}
 				haltclk = this->Haltrate;
 			}
 			Waitframe();
