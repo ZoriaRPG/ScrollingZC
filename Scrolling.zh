@@ -55,7 +55,7 @@
 // v1.2.2 : Check three spots on the side of the npc for collision with solid. We still have BUGS to fix with the npc script 'walking'.
 //        : DO we WANT a 56 offset on all Y checks in the npc script walking?  
 // v1.2.3 : Don't allow randomised dir changes for npc script walking to become stuck in a perpetual loop.
-
+// v1.2.4 : Fixes to npc script walking.
 
 script typedef untyped STRUCT;
 typedef const int def;
@@ -954,7 +954,9 @@ npc script walking
 		int steps[2] = { this->Attributes[20], this->Attributes[21] };
 		int f; int q; int clk = ( Rand(this->Attributes[22], this->Attributes[23]) );
 		this->Dir = Rand(4); bool newdir; int curstep; bool slowwalk; int cooldown = this->Haltrate;
-		int dirclk = Rand(this->Attributes[24], this->Attributes[25]);
+		//int dirclk = Rand(this->Attributes[24], this->Attributes[25]);
+		int dirclk = 150;
+		int haltclk = 50;
 		while(this->isValid())
 		{
 			if ( !dirclk )
@@ -1004,7 +1006,6 @@ npc script walking
 			{
 				--cooldown;
 				Waitframe();
-				continue;
 			}
 			else
 			{
@@ -1021,12 +1022,17 @@ npc script walking
 						{
 							for ( q = 0; q < curstep; ++q )
 							{
-								if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*0.5), 
-									scroll.yPos+this->Y-1) ) && 
+								
+								if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*4), 
+									scroll.yPos+this->Y-1+56) ) 
+								&& //corners
 								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X, 
-									scroll.yPos+this->Y-1) ) &&
-								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+this->TileWidth-1, 
-									scroll.yPos+this->Y-1) ) )
+									scroll.yPos+this->Y-1+56) ) 
+								&&
+								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*8)-1, 
+									scroll.yPos+this->Y-1+56) ) 
+								
+								)
 								{
 									this->Y -= ((!curstep) ? 0 : 1);
 									
@@ -1034,39 +1040,8 @@ npc script walking
 								}
 								else //complete move in another direction
 								{
-									int validDirs[3];
-									switch(this->Dir)
-									{
-										case DIR_UP:
-										{
-											validDirs[0] = DIR_DOWN;
-											validDirs[1] = DIR_LEFT;
-											validDirs[2] = DIR_RIGHT;
-											break;
-										}
-										case DIR_LEFT:
-										{
-											validDirs[0] = DIR_DOWN;
-											validDirs[1] = DIR_UP;
-											validDirs[2] = DIR_RIGHT;
-											break;
-										}
-										case DIR_DOWN:
-										{
-											validDirs[0] = DIR_LEFT;
-											validDirs[1] = DIR_UP;
-											validDirs[2] = DIR_RIGHT;
-											break;
-										}
-										case DIR_RIGHT:
-										{
-											validDirs[0] = DIR_LEFT;
-											validDirs[1] = DIR_UP;
-											validDirs[2] = DIR_DOWN;
-											break;
-										}
-										default: break;
-									}
+									int validDirs[3] = { DIR_DOWN, DIR_LEFT, DIR_RIGHT };
+									
 									//change direction
 									this->Dir = validDirs[Rand(3)];
 									
@@ -1080,12 +1055,16 @@ npc script walking
 						{
 							for ( q = 0; q < curstep; ++q )
 							{
-								if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*0.5), 
-									16+scroll.yPos+this->Y + 1)) &&
+								if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*4), 
+									16+scroll.yPos+this->Y + 1+56)) 
+								 && //corners
 								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X, 
-									16+scroll.yPos+this->Y + 1)) &&
-								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth-1), 
-									16+scroll.yPos+this->Y + 1)))
+									16+scroll.yPos+this->Y + 1+56)) 
+								&&
+								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*8)-1, 
+									16+scroll.yPos+this->Y + 1+56))
+							
+								)
 								
 								{
 									this->Y += ((!curstep) ? 0 : 1);
@@ -1094,39 +1073,8 @@ npc script walking
 								}
 								else //complete move in another direction
 								{
-									int validDirs[3];
-									switch(this->Dir)
-									{
-										case DIR_UP:
-										{
-											validDirs[0] = DIR_DOWN;
-											validDirs[1] = DIR_LEFT;
-											validDirs[2] = DIR_RIGHT;
-											break;
-										}
-										case DIR_LEFT:
-										{
-											validDirs[0] = DIR_DOWN;
-											validDirs[1] = DIR_UP;
-											validDirs[2] = DIR_RIGHT;
-											break;
-										}
-										case DIR_DOWN:
-										{
-											validDirs[0] = DIR_LEFT;
-											validDirs[1] = DIR_UP;
-											validDirs[2] = DIR_RIGHT;
-											break;
-										}
-										case DIR_RIGHT:
-										{
-											validDirs[0] = DIR_LEFT;
-											validDirs[1] = DIR_UP;
-											validDirs[2] = DIR_DOWN;
-											break;
-										}
-										default: break;
-									}
+									int validDirs[3] = { DIR_LEFT, DIR_UP, DIR_RIGHT };
+									
 									//change direction
 									this->Dir = validDirs[Rand(3)];
 									
@@ -1140,11 +1088,15 @@ npc script walking
 							for ( q = 0; q < curstep; ++q )
 							{
 								if(!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
-									scroll.yPos+this->Y+56+(this->TileHeight*0.5)) ) &&
+									scroll.yPos+this->Y+56+(this->TileHeight*4)) ) 
+								&& //corners
 								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
-									scroll.yPos+this->Y+56) ) &&
+									scroll.yPos+this->Y+56) ) 
+								&&
 								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
-									scroll.yPos+this->Y+56+(this->TileHeight-1)) ) )
+									scroll.yPos+this->Y+56+(this->TileHeight*8)-1) ) 
+								
+								)
 
 
 								{
@@ -1154,39 +1106,8 @@ npc script walking
 								}
 								else //complete move in another direction
 								{
-									int validDirs[3];
-									switch(this->Dir)
-									{
-										case DIR_UP:
-										{
-											validDirs[0] = DIR_DOWN;
-											validDirs[1] = DIR_LEFT;
-											validDirs[2] = DIR_RIGHT;
-											break;
-										}
-										case DIR_LEFT:
-										{
-											validDirs[0] = DIR_DOWN;
-											validDirs[1] = DIR_UP;
-											validDirs[2] = DIR_RIGHT;
-											break;
-										}
-										case DIR_DOWN:
-										{
-											validDirs[0] = DIR_LEFT;
-											validDirs[1] = DIR_UP;
-											validDirs[2] = DIR_RIGHT;
-											break;
-										}
-										case DIR_RIGHT:
-										{
-											validDirs[0] = DIR_LEFT;
-											validDirs[1] = DIR_UP;
-											validDirs[2] = DIR_DOWN;
-											break;
-										}
-										default: break;
-									}
+									int validDirs[3] = { DIR_DOWN, DIR_UP, DIR_RIGHT };
+									
 									//change direction
 									this->Dir = validDirs[Rand(3)];
 									
@@ -1200,11 +1121,15 @@ npc script walking
 							for ( q = 0; q < curstep; ++q )
 							{
 								if(!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
-									scroll.yPos+this->Y+56+(this->TileHeight*0.5)) ) &&
+									scroll.yPos+this->Y+56+(this->TileHeight*4)) ) 
+								 //corners
 								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
-									scroll.yPos+this->Y+56) ) &&
+									scroll.yPos+this->Y+56) ) 
+								&&
 								!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
-									scroll.yPos+this->Y+56+(this->TileHeight-1)) ) )
+									scroll.yPos+this->Y+56+(this->TileHeight*8)-1) ) 
+								
+								)
 
 
 								{
@@ -1214,39 +1139,9 @@ npc script walking
 								}
 								else //complete move in another direction
 								{
-									int validDirs[3];
-									switch(this->Dir)
-									{
-										case DIR_UP:
-										{
-											validDirs[0] = DIR_DOWN;
-											validDirs[1] = DIR_LEFT;
-											validDirs[2] = DIR_RIGHT;
-											break;
-										}
-										case DIR_LEFT:
-										{
-											validDirs[0] = DIR_DOWN;
-											validDirs[1] = DIR_UP;
-											validDirs[2] = DIR_RIGHT;
-											break;
-										}
-										case DIR_DOWN:
-										{
-											validDirs[0] = DIR_LEFT;
-											validDirs[1] = DIR_UP;
-											validDirs[2] = DIR_RIGHT;
-											break;
-										}
-										case DIR_RIGHT:
-										{
-											validDirs[0] = DIR_LEFT;
-											validDirs[1] = DIR_UP;
-											validDirs[2] = DIR_DOWN;
-											break;
-										}
-										default: break;
-									}
+									//LogPrint("Trying to change dir from dir %d \n", this->Dir);
+									int validDirs[3] = { DIR_LEFT, DIR_UP, DIR_DOWN };
+									
 									//change direction
 									this->Dir = validDirs[Rand(3)];
 									
