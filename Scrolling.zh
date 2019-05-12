@@ -721,8 +721,8 @@ STRUCT script bitmaps
 STRUCT script mapInfo
 {
 	int enemiesInitialised[128];
-	def blankMap = 4;
-	def blankScreen = 0; 
+	def blankMap = 4; //Will become Game->Misc[0]
+	def blankScreen = 0;  //Will become Game->Misc[1]
 	int curMap;
 	int curScreen;
 	bool canScroll = true;
