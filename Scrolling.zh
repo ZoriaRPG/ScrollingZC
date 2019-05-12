@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.3.1           ///
+/// ALPHA v1.3.2           ///
 /// 12th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -62,6 +62,7 @@
 // v1.2.8 : Added namespace 'npcs' and npcs::canWalk(T, step, dir).
 // v1.3.0 : Completely rewrite npc script walking. Enemies are no longer able to become stuck!!
 // v1.3.1 : Enemy step is once again modified by CT_SLOWWALK.
+// v1.3.2 : Remember to check if the enemy ignores SLow Walk combos. 
 
 
 
@@ -1070,7 +1071,7 @@ npc script walking
 		{
 			
 			//logic
-			if (comboT(this) == CT_SLOWWALK)
+			if (comboT(this) == CT_SLOWWALK && !ignoreSlowWalk)
 			{
 				curstep = ( (f&1) ) ? curstep : 0;
 			}
