@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.3.2           ///
+/// ALPHA v1.3.3           ///
 /// 12th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -63,6 +63,7 @@
 // v1.3.0 : Completely rewrite npc script walking. Enemies are no longer able to become stuck!!
 // v1.3.1 : Enemy step is once again modified by CT_SLOWWALK.
 // v1.3.2 : Remember to check if the enemy ignores SLow Walk combos. 
+// v1.3.3 : Remove unused vars from npc script walking, and re-implement frame ticker. 
 
 
 
@@ -1024,20 +1025,6 @@ global script active
 	
 npc script walking
 {
-	/*Attributes
-	[20] Small Walk Step Amount
-	[21] Big Walk Step Amount
-	[22] Minimum Time between Moves
-	[23] Maximum Time Between Moves
-	[24] Maximum Time Between Changing Dir
-	[25] Maximum Time Between Chaning Dir
-	
-	//if random clock <= 0 change dir; randomclk = this->Random
-	//else --randomclk
-	//if haltclk > 0 --haltclk
-	//else { haltclk = this->Haltrate , then move()
-	
-	*/
 	int comboT(npc T)
 	{
 		return (Graphics->GetPixel(bitmaps.overscan_type,scroll.xPos+T->X + (T->TileWidth*0.5), scroll.yPos+T->Y+56+(T->TileHeight*0.5)) * 10000);
@@ -1046,15 +1033,8 @@ npc script walking
 	{
 		const int HALT_FRAMES = 32;
 		haltFrames = ( haltFrames > 0 ) ? haltFrames : HALT_FRAMES;
-		//if ( constantwalk ) this->InitD[0] = 0;
-		//int steps[2] = { this->Attributes[20], this->Attributes[21] };
-		int f; int q; 
-		//int clk = ( Rand(this->Attributes[22], this->Attributes[23]) );
+		int f;
 		this->Dir = Rand(4); 
-		//bool newdir; int curstep; bool slowwalk; int cooldown = this->Haltrate;
-		//int dirclk = Rand(this->Attributes[24], this->Attributes[25]);
-		//int dirclk = 150;
-		//int haltclk = 50;
 		int dirclk = this->Rate;
 		
 		int curx, cury, stuckclk; //used to check if we are stuck.
@@ -1069,7 +1049,7 @@ npc script walking
 		
 		while(this->isValid())
 		{
-			
+			++f;
 			//logic
 			if (comboT(this) == CT_SLOWWALK && !ignoreSlowWalk)
 			{
