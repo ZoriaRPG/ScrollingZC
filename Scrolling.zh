@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.3.5           ///
+/// ALPHA v1.4.0           ///
 /// 12th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -66,6 +66,7 @@
 // v1.3.3 : Remove unused vars from npc script walking, and re-implement frame ticker. 
 // v1.3.4 : Disabled logging in npc script walking.
 // v1.3.5 : Added a call to this->Attack() during the enemy halt in npc script walking.
+// v1.4.0 : Created better handling for enemy spawning on virtual screens.
 
 
 
@@ -785,6 +786,33 @@ STRUCT script mapInfo
 	{
 		return (Graphics->GetPixel(bitmaps.overscan_iflag,xpos+Hero->X + 8, ypos+Hero->Y+56+8) * 10000);
 	}
+	int checkSpawnFlags()
+	{
+		
+		npc the_enemy;
+		mapdata md = Game->LoadMapData(mapInfo.curMap, mapInfo.curScreen);
+		
+		if (!( Game->GetScreenD(mapInfo.curScreen, 0 ) ) )
+		{
+			for ( int q = 0; q < 256; q+= 16)
+			{
+				for ( int w = 0; w < 176; w+= 16)
+				{
+					int f =  (Graphics->GetPixel(bitmaps.overscan_flag,scroll.xPos+q, scroll.yPos+w) * 10000);
+					if ( f >= CF_ENEMY0 && f <= CF_ENEMY9 )
+					{
+						LogPrint("Found Spawn Flag %d at x: %d, y: %d \n", f, q, w);
+						int id = getEnemyIndex(f-CF_ENEMY0);
+						the_enemy = Screen->CreateNPC(id);
+						the_enemy->X = q;
+						the_enemy->Y = w-56;
+					}
+				}
+			}
+			Game->SetScreenD(mapInfo.curScreen, 0,1);
+		}
+		
+	}
 	int checkSpawnFlags(int xpos, int ypos)
 	{
 		npc the_enemy;
@@ -1249,7 +1277,8 @@ dmapdata script scroll
 		int pPosX, pPosY;
 		
 		//Load initial enemies. 
-		mapInfo.checkSpawnFlags(xPos, yPos);
+		//mapInfo.checkSpawnFlags(xPos, yPos);
+		//mapInfo.checkSpawnFlags();
 		
 		while(1)
 		{
@@ -1465,7 +1494,8 @@ dmapdata script scroll
 			
 			if ( lastScrn != mapInfo.curScreen ) //We are on a new virtual screen
 			{
-				mapInfo.checkSpawnFlags(xPos, yPos);
+				//mapInfo.checkSpawnFlags(xPos, yPos);
+				mapInfo.checkSpawnFlags();
 				lastScrn = mapInfo.curScreen;
 			}
 			//blit the player sprite to the video bitmap. 
