@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.4.1           ///
+/// ALPHA v1.4.2           ///
 /// 12th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -69,6 +69,7 @@
 // v1.4.0 : Created better handling for enemy spawning on virtual screens.
 // v1.4.1 : Use mapInfo.enemiesInitialised[] to track valid enemy spawns.
 //        : Prevent using F6->Continue to despawn enemies.
+// v1.4.2 : Fix drawing of border screens to overscan bitmap.
 
 
 
@@ -101,7 +102,7 @@ namespace rpg
 	//def RPG_DATA_SIZE = 64;
 	//int data[RPG_DATA_SIZE];
 	
-	def DRAWSTATS = 0;
+	def DRAWSTATS = 1; //Will become Game->Misc[3]
 	def RPG_VERSION = 1.101;
 	def RPG_ISBETA = -1; //1 for beta, 0 for release, -1 for alpha.
 	
@@ -721,8 +722,13 @@ STRUCT script bitmaps
 STRUCT script mapInfo
 {
 	int enemiesInitialised[128];
+	//Dragon Quest
+	def blankMap = 2; //Will become Game->Misc[0]
+	def blankScreen = 0;  //Will become Game->Misc[1]
+	/* Koten
 	def blankMap = 4; //Will become Game->Misc[0]
 	def blankScreen = 0;  //Will become Game->Misc[1]
+	*/
 	int curMap;
 	int curScreen;
 	bool canScroll = true;
@@ -1210,7 +1216,8 @@ dmapdata script scroll
 		// bitmap image1 = Game->AllocateBitmap();
 		// image1->Read(0,"test.png");
 		bitmaps.Clear();
-		bitmaps.border->DrawScreen(mapInfo.blankMap, mapInfo.blankScreen, 0, 0, 0, 0);
+		bitmaps.border->DrawScreen(0, mapInfo.blankMap, mapInfo.blankScreen, 0, 0, 0);
+		
 		
 		//Add OVERSCAN to visible map. 
 		//top strip
