@@ -1,180 +1,121 @@
 npc script walking
 {
-	/*Attributes
-	[20] Small Walk Step Amount
-	[21] Big Walk Step Amount
-	[22] Minimum Time between Moves
-	[23] Maximum Time Between Moves
-	[24] Maximum Time Between Changing Dir
-	[25] Maximum Time Between Chaning Dir
-	
-	
-	*/
 	int comboT(npc T)
 	{
 		return (Graphics->GetPixel(bitmaps.overscan_type,scroll.xPos+T->X + (T->TileWidth*0.5), scroll.yPos+T->Y+56+(T->TileHeight*0.5)) * 10000);
 	}
-	void run(bool constantwalk) //.d0, the cooldown time between moves
+	void run(bool constantwalk, bool ignoreSlowWalk, int haltFrames) //.d0, the cooldown time between moves
 	{
-		if ( constantwalk ) this->InitD[0] = 0;
-		int steps[2] = { this->Attributes[20], this->Attributes[21] };
-		int f; int q; int clk = ( Rand(this->Attributes[22], this->Attributes[23]) );
-		this->Dir = Rand(4); bool newdir; int curstep; bool slowwalk; int cooldown = this->Haltrate;
-		int dirclk = Rand(this->Attributes[24], this->Attributes[25]);
+		const int HALT_FRAMES = 32;
+		haltFrames = ( haltFrames > 0 ) ? haltFrames : HALT_FRAMES;
+		int f;
+		this->Dir = Rand(4); 
+		int dirclk = this->Rate;
+		
+		int curx, cury, stuckclk; //used to check if we are stuck.
+		curx = this->X; cury = this->Y; 
+		
+		int randomclk = this->Rate;
+		int haltclk = this->Haltrate;
+		int curstep = this->Step;
+		
+		
+		
+		
 		while(this->isValid())
 		{
-			if ( !dirclk )
+			++f;
+			//logic
+			if (comboT(this) == CT_SLOWWALK && !ignoreSlowWalk)
 			{
-				int olddir = this->Dir;
-				//change direction
-				do 
-				{
-					this->Dir = Rand(4);
-				} until(this->Dir != olddir );
-				newdir = false;
-				
+				curstep = ( (f&1) ) ? curstep : 0;
 			}
-			else 
+			else curstep = this->Step;
+			//move
+			//halt for a bit if not constantwalk
+			//check if it is time to change direction
+			//if it is, then we do a coinflip. heads, change, tails, do not change, reset the clk (random)
+			
+			if ( randomclk > 0 ) 
 			{
-				--dirclk;
-			}
-			if ( cooldown )
-			{
-				--cooldown;
-				Waitframe();
-				continue;
+				--randomclk;
 			}
 			else
 			{
-				cooldown = this->Haltrate;
 				
-				if ( clk )
+				//change direction.
+				this->Dir = Rand(4);
+				randomclk = this->Rate;
+			}
+			if ( haltclk > 0 ) 
+			{
+				--haltclk;
+				
+				LogPrint("NPC Can Walk? %s \n", (npcs::canWalk(this, curstep, this->Dir)) ? "true" : "false!");
+				if (npcs::canWalk(this, curstep, this->Dir))
 				{
-					slowwalk = comboT(this);
-					curstep = ( (slowwalk) ? ( (f&1) ? steps[1] : 0 ) : ( ( (f&1) ? steps[0] : steps[1]) ) ); //if it is a slow walk tile, reduce the step by half.
-					( (f&1) ? steps[0] : steps[1] ); //slow, fast
+					switch(this->Dir)
+					{
+						case DIR_UP: this->Y -= curstep; break;
+						case DIR_DOWN: this->Y += curstep; break;
+						case DIR_LEFT: this->X -= curstep; break;
+						case DIR_RIGHT: this->X += curstep; break;
+						
+						
+					}
+					
+					
+				}
+				else //change dir
+				{
+					LogPrint("npc %d could not move \n", <int>this);
+					int validDirs[3];
 					switch(this->Dir)
 					{
 						case DIR_UP:
 						{
-							for ( q = 0; q < curstep; ++q )
-							{
-								if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth*0.5), 
-									scroll.yPos+this->Y + 56 - 1) ) )
-								{
-									this->Y -= ((!curstep) ? 0 : 1);
-									
-									
-								}
-								else //complete move in another direction
-								{
-									int olddir = this->Dir;
-									
-									do 
-									{
-										this->Dir = Rand(4);
-									} until(this->Dir != olddir );
-									
-								}
-							}
-
-							
-							break;
-						}
-						case DIR_DOWN:
-						{
-							for ( q = 0; q < curstep; ++q )
-							{
-								if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+(this->TileWidth/2), 
-									//16+scroll.yPos+this->Y+56 + 1)))
-									16+scroll.yPos+this->Y + 1)))
-								{
-									this->Y += ((!curstep) ? 0 : 1);
-									
-									
-								}
-								else 
-								{
-									int olddir = this->Dir;
-									
-									do 
-									{
-										this->Dir = Rand(4);
-									} until(this->Dir != olddir );
-									
-								}
-							}
-							
+							validDirs[0] = DIR_DOWN;
+							validDirs[1] = DIR_LEFT;
+							validDirs[2] = DIR_RIGHT;
 							break;
 						}
 						case DIR_LEFT:
 						{
-							for ( q = 0; q < curstep; ++q )
-							{
-								if(!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X-1, 
-									scroll.yPos+this->Y+56+(this->TileHeight/2)) ) )
-
-
-								{
-									this->X -= ((!curstep) ? 0 : 1);
-									
-									
-								}
-								else 
-								{
-									int olddir = this->Dir;
-									
-									do 
-									{
-										this->Dir = Rand(4);
-									} until(this->Dir != olddir );
-									
-								}
-							}
-							
+							validDirs[0] = DIR_DOWN;
+							validDirs[1] = DIR_UP;
+							validDirs[2] = DIR_RIGHT;
+							break;
+						}
+						case DIR_DOWN:
+						{
+							validDirs[0] = DIR_LEFT;
+							validDirs[1] = DIR_UP;
+							validDirs[2] = DIR_RIGHT;
 							break;
 						}
 						case DIR_RIGHT:
 						{
-							for ( q = 0; q < curstep; ++q )
-							{
-								if(!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+this->X+16+1, 
-									scroll.yPos+this->Y+56+(this->TileHeight*0.5)) ) )
-
-
-								{
-									this->X += ((!curstep) ? 0 : 1);
-									
-									
-								}
-								else 
-								{
-									int olddir = this->Dir;
-									
-									do 
-									{
-										this->Dir = Rand(4);
-									} until(this->Dir != olddir );
-									
-								}
-							}
-							
+							validDirs[0] = DIR_LEFT;
+							validDirs[1] = DIR_UP;
+							validDirs[2] = DIR_DOWN;
 							break;
 						}
 						default: break;
-					}//completed its move
-					--clk;
+					}
+					//change direction
+					this->Dir = validDirs[Rand(3)];
 				}
-				else 
-				{
-					//Repeat(this->Haltrate) Waitframe();
-					
-					clk = ( Rand(this->Attributes[22], this->Attributes[23]) );
-					
-					
-				}
+				
 			}
+			else
+			{
+				for ( int q = 0; q < HALT_FRAMES; ++q ) Waitframe();
+				haltclk = this->Haltrate;
+			}
+			
+			
 			Waitframe();
 		}
 	}
+	
 }
