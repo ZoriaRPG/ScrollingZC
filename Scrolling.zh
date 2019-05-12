@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.2.5           ///
+/// ALPHA v1.2.6           ///
 /// 12th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -57,6 +57,9 @@
 // v1.2.3 : Don't allow randomised dir changes for npc script walking to become stuck in a perpetual loop.
 // v1.2.4 : Fixes to npc script walking.
 // v1.2.5 : Refactor enemy script 'walking', and force enemies to clip out of being stuck. 
+// v1.2.6 : Make enemy halt and random rate based on editor fields. 
+
+
 
 script typedef untyped STRUCT;
 typedef const int def;
@@ -956,8 +959,10 @@ npc script walking
 		int f; int q; int clk = ( Rand(this->Attributes[22], this->Attributes[23]) );
 		this->Dir = Rand(4); bool newdir; int curstep; bool slowwalk; int cooldown = this->Haltrate;
 		//int dirclk = Rand(this->Attributes[24], this->Attributes[25]);
-		int dirclk = 150;
-		int haltclk = 50;
+		//int dirclk = 150;
+		//int haltclk = 50;
+		int dirclk = this->Rate;
+		int haltclk = this->Haltrate;
 		int curx, cury, stuckclk; //used to check if we are stuck.
 		curx = this->X; cury = this->Y; 
 		while(this->isValid())
