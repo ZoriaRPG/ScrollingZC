@@ -18,10 +18,7 @@ npc script walking
 		int randomclk = this->Rate;
 		int haltclk = this->Haltrate;
 		int curstep = this->Step;
-		
-		
-		
-		
+
 		while(this->isValid())
 		{
 			++f;
