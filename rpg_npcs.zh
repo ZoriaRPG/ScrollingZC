@@ -1,0 +1,81 @@
+
+namespace npcs
+{
+	bool canWalk(npc T, int step, int dir)
+	{
+		switch(dir)
+		{
+			case DIR_UP:
+			{
+				if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+T->X+(T->TileWidth*4), 
+						scroll.yPos+T->Y-step+56) ) 
+					&& //corners
+					!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+T->X, 
+						scroll.yPos+T->Y-step+56) ) 
+					&&
+					!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+T->X+(T->TileWidth*8)-1, 
+						scroll.yPos+T->Y-step+56) ) 
+					
+					)
+				{
+					return true;
+				}
+				return false;
+			}
+			case DIR_DOWN:
+			{
+				
+				if (!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+T->X+(T->TileWidth*4), 
+					scroll.yPos+T->Y +15+ step+56)) 
+				 && //corners
+				!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+T->X, 
+					scroll.yPos+T->Y +15+ step+56)) 
+				&&
+				!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+T->X+(T->TileWidth*8)-1, 
+					scroll.yPos+T->Y +15+ step+56))
+			
+				)
+				{
+					return true;
+				}	
+				return false;
+			}
+			case DIR_LEFT:
+			{
+				if(!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+T->X-step, 
+					scroll.yPos+T->Y+56+(T->TileHeight*4)) ) 
+				&& //corners
+				!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+T->X-step, 
+					scroll.yPos+T->Y+56) ) 
+				&&
+				!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+T->X-step, 
+					scroll.yPos+T->Y+56+(T->TileHeight*8)-1) ) 
+				
+				)
+				{
+					return true;
+				}
+				return false;
+			}
+			case DIR_RIGHT:
+			{
+				
+				if(!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+T->X+15+step, 
+					scroll.yPos+T->Y+56+(T->TileHeight*4)) ) 
+				&& //corners
+				!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+T->X+15+step, 
+					scroll.yPos+T->Y+56) ) 
+				&&
+				!(Graphics->GetPixel(bitmaps.overscan_solid,scroll.xPos+T->X+15+step, 
+					scroll.yPos+T->Y+56+(T->TileHeight*8)-1) ) 
+				
+				)
+				{
+					return true;
+				}
+				return false;
+			}
+			default: return false;
+		}
+	}
+}
