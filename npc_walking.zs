@@ -42,7 +42,6 @@ npc script walking
 			}
 			else
 			{
-				
 				//change direction.
 				this->Dir = Rand(4);
 				randomclk = this->Rate;
@@ -50,8 +49,6 @@ npc script walking
 			if ( haltclk > 0 ) 
 			{
 				--haltclk;
-				
-				LogPrint("NPC Can Walk? %s \n", (npcs::canWalk(this, curstep, this->Dir)) ? "true" : "false!");
 				if (npcs::canWalk(this, curstep, this->Dir))
 				{
 					switch(this->Dir)
@@ -60,15 +57,11 @@ npc script walking
 						case DIR_DOWN: this->Y += curstep; break;
 						case DIR_LEFT: this->X -= curstep; break;
 						case DIR_RIGHT: this->X += curstep; break;
-						
-						
 					}
-					
-					
 				}
 				else //change dir
 				{
-					LogPrint("npc %d could not move \n", <int>this);
+					//LogPrint("npc %d could not move \n", <int>this);
 					int validDirs[3];
 					switch(this->Dir)
 					{
@@ -105,17 +98,13 @@ npc script walking
 					//change direction
 					this->Dir = validDirs[Rand(3)];
 				}
-				
 			}
 			else
 			{
 				for ( int q = 0; q < HALT_FRAMES; ++q ) Waitframe();
 				haltclk = this->Haltrate;
 			}
-			
-			
 			Waitframe();
 		}
 	}
-	
 }
