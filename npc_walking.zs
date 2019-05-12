@@ -1,13 +1,9 @@
 /* SUGGESTED VALUES
 
-Random rate: 120
-Halt Rate: 64
-Step Speed: 1
-
-Args <d3>: 40
-
-
-
+	Random rate: 120
+	Halt Rate: 64
+	Step Speed: 1
+	Args <d3, Duration of Halt>: 40
 */
 
 npc script walking

@@ -1027,6 +1027,13 @@ global script active
 	
 npc script walking
 {
+	/* SUGGESTED VALUES
+
+		Random rate: 120
+		Halt Rate: 64
+		Step Speed: 1
+		Args <d3, Duration of Halt>: 40
+	*/
 	int comboT(npc T)
 	{
 		return (Graphics->GetPixel(bitmaps.overscan_type,scroll.xPos+T->X + (T->TileWidth*0.5), scroll.yPos+T->Y+56+(T->TileHeight*0.5)) * 10000);
