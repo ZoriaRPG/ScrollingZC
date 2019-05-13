@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.4.3           ///
+/// ALPHA v1.5.0           ///
 /// 13th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -71,16 +71,20 @@
 //        : Prevent using F6->Continue to despawn enemies.
 // v1.4.2 : Fix drawing of border screens to overscan bitmap.
 // v1.4.3 : Acquire blank map, blank screen, and info on if we are to draw stats menu, from Game->Misc[].
-
+// v1.5.0 : Add spells menu drawing. 
 
 
 script typedef untyped STRUCT;
 typedef const int def;
 
+
+enum dqcolours { black, white, blue, dkblue, maroon, peach, rose, grey, pink, tan, fadedgold, royalblue, red = 0x11, truegold};
 enum menutype { mNone, mStats, mBattle, mCommand, mDialogue, mInventory, mShop, mInn, mSpell };
 enum stattype { level, hp, mp, gold, exp, str, dex, wis, con, cha, mind, soul, luck };
 enum spelltype { heal, hurt, light, fire, firemore, healmore, hurtmore, healmost, firemost, hurtmost, exit, warp };
 enum spelleffect { FXnone, FXflash };
+
+
 
 
 namespace std
@@ -247,13 +251,77 @@ lweapon script eweapons
 	
 }
 
+namespace commands
+{
+	
+	void check()
+	{
+		if ( Input->ReadKey[KEY_P] ) game.drawspells = ( game.drawspells ) ? 0 : 1;
+	}
+}
+
 STRUCT script spells
 {
 	spelltype current;
+	def bWidth = 100;
+	def bHeight = 64;
 	enum{ spStr, spCost, spEffect, spDuration, spLast };
 	enum { dispColumn, dispRow, dispLast };
 	int data[warp, spLast]; //[<int>warp]; //2d array
 	int display[dispLast];
+	int the_strings[32,64];
+	def dispX = 64;
+	def dispY = 4;
+	def bColumns = 2;
+	def bRows = 4;
+	def cursorWidth = 6;
+	bitmap bitty;
+	spelltype select()
+	{
+		spelltype ret = current;
+		
+		return ret;
+	}
+	void draw(int columns, int rows, int spacing_x, int spacing_y, int font, dqcolours colour)
+	{
+		//LogPrint("spell strings entirety is: %s \n", the_strings);
+		//columns, rows
+		int x, y;
+		x = 2+cursorWidth;
+		y = 2;
+		int pos;
+		for ( int q = 0; q < columns; ++q )
+		{
+			x = 2;
+			for ( int w = 0; w < rows; ++w )
+			{
+				int tempstr[64]; int dest_pos;
+				for ( dest_pos = 0; (the_strings[pos] != ' ' && the_strings[pos] != '!' 
+					&& the_strings[pos] != 0); ++dest_pos )
+				{
+					tempstr[dest_pos] = the_strings[pos];
+					++pos;
+				}
+				++pos; //skip over the next space!
+				//LogPrint("spells.draw(), single string is %s \n", tempstr);
+				bitty->DrawString(0, x, y, font, colour, -1, 0, tempstr, 128);
+				
+				x += spacing_x+cursorWidth;
+			}
+			y += spacing_y;
+		}
+		//draw cursor
+		int cursor_x, cursor_y;
+		//current == 3 row 2, col 1
+		
+		//cursor_x = ( current * ( columns * spacing_x ) );
+		//cursor_y = ( current * 
+		
+		bitty->Blit(6, -2, 0, 0, bitty->Width, bitty->Height, dispX, dispY, bitty->Width, bitty->Height, 0,0,0,0,0,false); 
+	
+		
+		
+	}
 	
 	void cast(spelltype spell)
 	{
@@ -279,15 +347,19 @@ STRUCT script spells
 		
 	}
 	//6,7,8,9,10
-	void init(int first_str, int last_str, int columns, int rows) //stores the string ID, the cost, and the effect for each spell, using ths string editor
+	void init(int first_str, int last_str, int columns, int rows, int height, int width) //stores the string ID, the cost, and the effect for each spell, using ths string editor
 	//string format is: 
 	//name 000 @effect
 	//example: 
 	//blaze 8 @flash
 	{
+		bitty = Game->CreateBitmap(height,width);
+		bitty->Rectangle(0, 0, 0, bitty->Width-1, bitty->Height-1, 0x4F, -1, 0,0,0,true,128);
+		bitty->Rectangle(0, 1, 1, bitty->Width-2, bitty->Height-2, 0x01, -1, 0,0,0,true,128);
+		bitty->Rectangle(0, 2, 2, bitty->Width-3, bitty->Height-3, 0x4F, -1, 0,0,0,true,128);
 		display[dispColumn] = columns; //used when we draw them.
 		display[dispRow] = rows;
-		
+		int dest_str_pos;
 		int sz = SizeOfArray(data);
 		LogPrint("array spells.data[] is size %d \n", sz);
 		//string format SPELLNAME 000 @effects
@@ -296,6 +368,7 @@ STRUCT script spells
 		for ( int q = 0; q < max; ++q ) //the max number of strings to process
 		{
 			int chr[256];
+			int sp_str[64];
 			data[q*warp+spStr] = first_str; //first_str is also the current string that we are reading
 			Game->GetMessage(q+first_str, chr);
 			//strip trailing spaces
@@ -305,8 +378,24 @@ STRUCT script spells
 				chr[w] = 0; //clear trailing spaces
 			}			
 			LogPrint("Spell String is: %s \n", chr);
+			int a = 0;
+			for ( a = 0; (chr[a] != 0 && chr[a] != '@' && !isNumber(chr[a])); ++a )
+			{
+				sp_str[a] = chr[a];
+			}
+			LogPrint("Spell String Section is: %s \n", sp_str);
+			int b = 0;
+			for ( b = 0; (sp_str[b] != 0); ++b )
+			{
+				the_strings[dest_str_pos] = sp_str[b];
+				++dest_str_pos;
+			}
 			
 			
+			the_strings[dest_str_pos] = '!'; //so that we don't end in a termination early.
+			LogPrint("GLobal Spell String is: %s \n", the_strings);
+			
+				
 				int the_cost[5];
 				int the_effect[10];
 				//int effect[3];
@@ -373,7 +462,7 @@ STRUCT script spells
 		//Draw to the bitmnap here?
 		int name[256];
 		
-		
+		the_strings[SizeOfArray(the_strings)-1] = 0; //add final terminator.
 		
 		
 	}
@@ -1043,7 +1132,10 @@ hero script h_init
 		bitmaps.Init();
 		//statsmenu.setMessages(1, 5);
 		this->CollDetection = false;
-		spells.init(6,10, 2, 5);
+		spells.init(6,10, 2, 5, spells.bWidth, spells.bHeight);
+		
+		
+		//(int layer, bitmap dest, int columns, int rows, int spacing_x, int spacing_y, int font, int colour)
 		
 	}
 }
@@ -1053,6 +1145,7 @@ STRUCT script game
 {
 	
 	int frame = 0;
+	int drawspells = 1;
 	
 }
 
@@ -1306,7 +1399,7 @@ dmapdata script scroll
 		
 		while(1)
 		{
-			
+			commands::check(); //What menus are visible?
 			Hero->X = ( 16*8 )-8; //Fixed coordinates int he centre of the screen.
 			Hero->Y = (16*7.5)-56-8;
 			//LogPrint("Hero->Tile is: %d \n", Hero->Tile);
@@ -1514,6 +1607,8 @@ dmapdata script scroll
 			}
 			bitmaps.scrn->Blit(0, -2, 0, 0, 256, 256, 0, -56, 256, 256, 0, 0, 0, 0, 0, false);
 			if ( Game->Misc[rpg::DRAWSTATS] ) statsmenu.draw();
+			if ( game.drawspells ) spells.draw(spells.bRows, spells.bColumns, ((spells.bitty->Width * 0.5)-4), 18, FONT_FF, white);
+			//if ( game.drawspells ) spells.draw(4, 2, ((spells.bitty->Width * 0.5)-4), 18, FONT_FF, white);
 			//if ( (scrollcountx && !(Abs(scrollcountx)&16)) || (scrollcounty && !(Abs(scrollcounty)&16)) )
 			
 			if ( lastScrn != mapInfo.curScreen ) //We are on a new virtual screen
