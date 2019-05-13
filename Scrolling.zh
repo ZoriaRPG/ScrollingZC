@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.5.3           ///
+/// ALPHA v1.5.4           ///
 /// 13th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -76,7 +76,11 @@
 // v1.5.2 : Fix cursor column/row positioning.
 // v1.5.3 : Added spelltype getspell(int index) and converted cursor to an index, instead of returning a direct spelltype.
 //        : We need this for arbitrary matching from the spell tables as strings.
-
+// v1.5.4 : Store spell ID and spell sfx in strings. 
+//        : The current string format is: NAME <cost> @effect !<id> *<sfx>
+//        : Example: Blaze 2 @flash !3 *53 
+//        : The spell string displayed in the spells window is 'Blaze'. It costs 2MP, it flashes the screen
+//        : when the player casts it, its internal ID is 3, and it plays SFX 53 when cast.
 
 script typedef untyped STRUCT;
 typedef const int def;
@@ -287,7 +291,7 @@ STRUCT script spells
 	def bWidth = 100;
 	def bHeight = 64;
 	int curLearned = 4;
-	enum{ spStr, spCost, spEffect, spDuration, spLast };
+	enum{ spStr, spCost, spEffect, spDuration, spID, spSFX, spLast };
 	enum { dispColumn, dispRow, dispLast };
 	int data[warp, spLast]; //[<int>warp]; //2d array
 	int display[dispLast];
@@ -398,20 +402,53 @@ STRUCT script spells
 	
 	spelltype getspell(int index)
 	{
+		LogPrint("Spell ID should be: %d \n", data[index*warp+spID]);
+		int cost = getcost(index);
+		int effect = geteffect(index);
+		int sfx = getsound(index);
+		return <spelltype> data[index*warp+spID];
 		//hardcoded nonsense for now. We need to store the spell ID in the strings.
-		switch(index) 
-		{
-			case 0: return heal;
-			case 1: return hurt;
-			case 2: return fire;
-			case 3: return light;
-			default: return heal;
-		}
+		//switch(index) 
+		//{
+		//	case 0: return heal;
+		//	case 1: return hurt;
+		//	case 2: return fire;
+		//	case 3: return light;
+		//	default: return heal;
+		//}
+		
+	}
+	
+	int getcost(int index)
+	{
+		//enum{ spStr, spCost, spEffect, spDuration, spID, spLast };
+		LogPrint("Spell Cost should be: %d \n", data[index*warp+spCost]);
+		return data[index*warp+spCost];
+		
+	}
+	int geteffect(int index)
+	{
+		LogPrint("Spell Effect should be: %d \n", data[index*warp+spEffect]);
+		return data[index*warp+spEffect];
+	}
+	int getsound(int index)
+	{
+		LogPrint("Spell SFX should be: %d \n", data[index*warp+spSFX]);
+		return data[index*warp+spSFX];
+		
+	}
+	
+	bool cancast(int index)
+	{
+		int cost = getcost(index);
+		int effect = geteffect(index);
+		
 		
 	}
 	
 	void cast(spelltype spell)
 	{
+		
 		switch(spell)
 		{
 			case heal: LogPrint("Casting spell: %s \n", "Heal"); break;
@@ -455,6 +492,8 @@ STRUCT script spells
 		{
 			int chr[256];
 			int sp_str[64];
+			int the_id[16];
+			int the_sound[16];
 			data[q*warp+spStr] = first_str; //first_str is also the current string that we are reading
 			Game->GetMessage(q+first_str, chr);
 			//strip trailing spaces
@@ -463,6 +502,52 @@ STRUCT script spells
 			{
 				chr[w] = 0; //clear trailing spaces
 			}			
+			
+			int id_pos;
+			//slow, but fuck it
+			int m;
+			int sound_pos;
+			int n;
+			do
+			{
+				++m;
+			}until(chr[m] == '!' || chr[m] == 0);
+			LogPrint("spell_id found delim '!' at pos: %d \n", m);
+			for ( ; chr[m] != 0; ++m )
+			{
+				//if(chr[m] != '!') continue;
+				if(isNumber(chr[m]))
+				{
+					
+					the_id[id_pos] = chr[m];
+					++id_pos;
+				}
+				if ( chr[m] == '*' ) break;
+			}
+			LogPrint("Spell id is: %s \n", the_id);
+			data[q*warp+spID] = atoi(the_id);
+			
+			
+			do
+			{
+				++n;
+			}until(chr[n] == '*' || chr[n] == 0);
+			LogPrint("spell_sound found delim '*' at pos: %d \n", n);
+			for ( ; chr[n] != 0; ++n )
+			{
+				//if(chr[m] != '!') continue;
+				if(isNumber(chr[n]))
+				{
+					
+					the_sound[sound_pos] = chr[n];
+					++sound_pos;
+				}
+			}
+			
+			LogPrint("Spell sound is: %s \n", the_sound);
+			data[q*warp+spSFX] = atoi(the_sound);
+			
+			
 			LogPrint("Spell String is: %s \n", chr);
 			int a = 0;
 			for ( a = 0; (chr[a] != 0 && chr[a] != '@' && !isNumber(chr[a])); ++a )
@@ -507,7 +592,13 @@ STRUCT script spells
 
 			}
 			effect_buf[15] = 0;
+			for ( int r = 15; r >= 0; --r ) 
+			{
+				if ( !isNumber(effect_buf[r]) ) effect_buf[r] = 0;
+				else break;
+			}
 			LogPrint("Spell Cost is: %s \n", the_cost);
+			data[q*warp+spCost] = atoi(the_cost);
 			//get the effect
 			
 			//pos = 0;
