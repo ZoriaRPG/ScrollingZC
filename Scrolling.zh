@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.5.5           ///
+/// ALPHA v1.5.6           ///
 /// 13th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -82,6 +82,8 @@
 //        : The spell string displayed in the spells window is 'Blaze'. It costs 2MP, it flashes the screen
 //        : when the player casts it, its internal ID is 3, and it plays SFX 53 when cast.
 // v1.5.5 : Fix spell menu cusrow wrapping to +1 position, and corrected the menu column/row dimensions in spells.init().
+// v1.5.6 : Moved spells.init param vars into Game->Misc[3, 4, 5, and 6].
+
 
 script typedef untyped STRUCT;
 typedef const int def;
@@ -305,7 +307,10 @@ STRUCT script spells
 	bitmap bitty;
 	def cursor_tile = 26000; //Move to Game->Misc[4];
 	def cursor_cset = 0;
-
+	def stringMin = 3; //Game->Misc[3]
+	def stringMax = 4; //Game->Misc[4]
+	def windowColumns = 5; //Game->Misc[5];
+	def windowRows = 6; //Game->Misc[6];
 	spelltype select()
 	{
 		spelltype ret = current;
@@ -1310,7 +1315,8 @@ hero script h_init
 		bitmaps.Init();
 		//statsmenu.setMessages(1, 5);
 		this->CollDetection = false;
-		spells.init(6,9, 2, 2, spells.bWidth, spells.bHeight);
+		spells.init(Game->Misc[spells.stringMin],Game->Misc[spells.stringMax], Game->Misc[spells.windowColumns], 
+			Game->Misc[spells.windowRows], spells.bWidth, spells.bHeight);
 		
 		
 		//(int layer, bitmap dest, int columns, int rows, int spacing_x, int spacing_y, int font, int colour)
