@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.5.1           ///
+/// ALPHA v1.5.2           ///
 /// 13th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -73,6 +73,7 @@
 // v1.4.3 : Acquire blank map, blank screen, and info on if we are to draw stats menu, from Game->Misc[].
 // v1.5.0 : Add spells menu drawing. 
 // v1.5.1 : Add cursor drawing. Added some structs and other data envelopes for drawing the spells menu.
+// v1.5.2 : Fix cursor column/row positioning.
 
 
 script typedef untyped STRUCT;
@@ -98,6 +99,22 @@ namespace std
 		}
 	}
 	int sizeof(int ptr) { return SizeOfArray(ptr); }
+	int vbound(int v, int a, int b)
+	{
+		if ( a < b ) 
+		{
+			if ( v <= a ) return a;
+			if ( v >= b ) return b;
+			return v;
+		}
+		else
+		{
+			if ( v <= b ) return b;
+			if ( v >= a ) return a;
+			return v;
+		}
+		//return a < b ? (v < a ? (a) : (v > b ? (b) : (v))) : (v < b ? (b) : (v > a ? (a) : (v)));
+	}
 }
 
 
@@ -288,16 +305,21 @@ STRUCT script spells
 	}
 	void draw(int columns, int rows, int spacing_x, int spacing_y, int font, dqcolours colour)
 	{
+		//current = <spelltype>2;
 		//LogPrint("spell strings entirety is: %s \n", the_strings);
 		//columns, rows
+		//do these here, to wipe the bitmap each time the cursor changes!
+		bitty->Rectangle(0, 0, 0, bitty->Width-1, bitty->Height-1, 0x4F, -1, 0,0,0,true,128);
+		bitty->Rectangle(0, 1, 1, bitty->Width-2, bitty->Height-2, 0x01, -1, 0,0,0,true,128);
+		bitty->Rectangle(0, 2, 2, bitty->Width-3, bitty->Height-3, 0x4F, -1, 0,0,0,true,128);
 		int x, y;
 		x = 2+cursorWidth;
 		y = 3;
 		int pos;
-		for ( int q = 0; q < columns; ++q )
+		for ( int q = 0; q < rows; ++q )
 		{
 			x = 2+cursorWidth;
-			for ( int w = 0; w < rows; ++w )
+			for ( int w = 0; w < columns; ++w )
 			{
 				int tempstr[64]; int dest_pos;
 				for ( dest_pos = 0; (the_strings[pos] != ' ' && the_strings[pos] != '!' 
@@ -316,18 +338,16 @@ STRUCT script spells
 		}
 		//draw cursor
 		int cursor_x, cursor_y;
-		//current == 3 row 2, col 1
-		int cursor_column, cursor_row;
-		cursor_column = ((current/columns)<<0);
-		cursor_row = ((current/rows)<<0);
+	
+		cursor_column = ( current % (columns) );
+		cursor_row = ((current/columns)<<0);
 		//TODO: Error-Check with different combinations of columns and rows!
-		
-		//LogPrint("Sel 3, colums is: %d \n", ((5/columns)<<0));
-		//LogPrint("Sel 3, row is: %d \n", ((5/rows)<<0));
 		
 		cursor_x = 4 + (cursor_column * spacing_x);
 		cursor_y = (cursor_row * spacing_y) + 1;
-		//cursor_y = ( current * 
+		//LogPrint("Current Cursor Column: %d \n", cursor_column);
+		//LogPrint("Current Cursor Row: %d \n", cursor_row);
+		
 		bitty->FastTile(0, cursor_x, cursor_y, cursor_tile, cursor_cset, 128);
 		bitty->Blit(6, -2, 0, 0, bitty->Width, bitty->Height,/*align to right edge of screen*/ (255-(bitty->Width)) ,
 			-56+1, bitty->Width, bitty->Height, 0,0,0,0,0,false); 
@@ -336,9 +356,9 @@ STRUCT script spells
 		
 	}
 	
-	void select(int max, int columns)
+	int select(int max, int columns)
 	{
-		if (!game.drawspells) return;
+		if (!game.drawspells) return -1;
 		if ( Hero->PressRight ) 
 		{
 			Hero->PressRight = false;
@@ -360,7 +380,7 @@ STRUCT script spells
 			Hero->PressDown = false;
 			//current += <spelltype>(( current < max ) ? ( columns ) : 0);
 		}
-		
+		return current;
 	}
 	
 	void cast(spelltype spell)
@@ -394,9 +414,7 @@ STRUCT script spells
 	//blaze 8 @flash
 	{
 		bitty = Game->CreateBitmap(height,width);
-		bitty->Rectangle(0, 0, 0, bitty->Width-1, bitty->Height-1, 0x4F, -1, 0,0,0,true,128);
-		bitty->Rectangle(0, 1, 1, bitty->Width-2, bitty->Height-2, 0x01, -1, 0,0,0,true,128);
-		bitty->Rectangle(0, 2, 2, bitty->Width-3, bitty->Height-3, 0x4F, -1, 0,0,0,true,128);
+		
 		display[dispColumn] = columns; //used when we draw them.
 		display[dispRow] = rows;
 		int dest_str_pos;
@@ -1454,7 +1472,7 @@ dmapdata script scroll
 				LogPrint("Current Virtual Screen: %d \n", mapInfo.ScreenAt(xPos, yPos));
 				LogPrint("Current Virtual Map: %d \n", mapInfo.curMap);
 			}
-			if ( mapInfo.canScroll )
+			if ( mapInfo.canScroll && !game.drawspells )
 			{
 				if(Hero->InputLeft)
 				{
@@ -1649,8 +1667,8 @@ dmapdata script scroll
 			if ( Game->Misc[rpg::DRAWSTATS] ) statsmenu.draw();
 			if ( game.drawspells ) 
 			{
-				spells.select(spells.curLearned, spells.bColumns);
-				spells.draw(spells.bRows, spells.bColumns, ((spells.bitty->Width * 0.5)-4), 18, FONT_FF, white);
+				LogPrint("Current Spell is: %d \n", spells.select(spells.curLearned, spells.bColumns));
+				spells.draw(spells.bColumns, spells.bRows, ((spells.bitty->Width * 0.5)-4), 18, FONT_FF, white);
 			}
 			//if ( game.drawspells ) spells.draw(4, 2, ((spells.bitty->Width * 0.5)-4), 18, FONT_FF, white);
 			//if ( (scrollcountx && !(Abs(scrollcountx)&16)) || (scrollcounty && !(Abs(scrollcounty)&16)) )
