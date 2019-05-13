@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.5.4           ///
+/// ALPHA v1.5.5           ///
 /// 13th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -81,6 +81,7 @@
 //        : Example: Blaze 2 @flash !3 *53 
 //        : The spell string displayed in the spells window is 'Blaze'. It costs 2MP, it flashes the screen
 //        : when the player casts it, its internal ID is 3, and it plays SFX 53 when cast.
+// v1.5.5 : Fix spell menu cusrow wrapping to +1 position, and corrected the menu column/row dimensions in spells.init().
 
 script typedef untyped STRUCT;
 typedef const int def;
@@ -371,7 +372,7 @@ STRUCT script spells
 		if ( Hero->PressRight ) 
 		{
 			Hero->PressRight = false;
-			selected = (( selected < max ) ? ( selected+1 ) : 0);
+			selected = (( selected < (max-1) ) ? ( selected+1 ) : 0);
 		}
 		if ( Hero->PressLeft ) 
 		{
@@ -387,7 +388,7 @@ STRUCT script spells
 		if ( Hero->PressDown ) 
 		{
 			Hero->PressDown = false;
-			selected += (( selected < max ) ? ( columns ) : 0);
+			selected += (( selected < (max-1) ) ? ( columns ) : 0);
 		}
 		if ( Hero->PressB ) 
 		{ 
@@ -1309,7 +1310,7 @@ hero script h_init
 		bitmaps.Init();
 		//statsmenu.setMessages(1, 5);
 		this->CollDetection = false;
-		spells.init(6,10, 2, 5, spells.bWidth, spells.bHeight);
+		spells.init(6,9, 2, 2, spells.bWidth, spells.bHeight);
 		
 		
 		//(int layer, bitmap dest, int columns, int rows, int spacing_x, int spacing_y, int font, int colour)
