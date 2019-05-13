@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.5.0           ///
+/// ALPHA v1.5.1           ///
 /// 13th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -72,6 +72,7 @@
 // v1.4.2 : Fix drawing of border screens to overscan bitmap.
 // v1.4.3 : Acquire blank map, blank screen, and info on if we are to draw stats menu, from Game->Misc[].
 // v1.5.0 : Add spells menu drawing. 
+// v1.5.1 : Add cursor drawing. Added some structs and other data envelopes for drawing the spells menu.
 
 
 script typedef untyped STRUCT;
@@ -265,6 +266,7 @@ STRUCT script spells
 	spelltype current;
 	def bWidth = 100;
 	def bHeight = 64;
+	int curLearned = 4;
 	enum{ spStr, spCost, spEffect, spDuration, spLast };
 	enum { dispColumn, dispRow, dispLast };
 	int data[warp, spLast]; //[<int>warp]; //2d array
@@ -276,6 +278,8 @@ STRUCT script spells
 	def bRows = 4;
 	def cursorWidth = 6;
 	bitmap bitty;
+	def cursor_tile = 26000; //Move to Game->Misc[4];
+	def cursor_cset = 0;
 	spelltype select()
 	{
 		spelltype ret = current;
@@ -288,11 +292,11 @@ STRUCT script spells
 		//columns, rows
 		int x, y;
 		x = 2+cursorWidth;
-		y = 2;
+		y = 3;
 		int pos;
 		for ( int q = 0; q < columns; ++q )
 		{
-			x = 2;
+			x = 2+cursorWidth;
 			for ( int w = 0; w < rows; ++w )
 			{
 				int tempstr[64]; int dest_pos;
@@ -313,13 +317,49 @@ STRUCT script spells
 		//draw cursor
 		int cursor_x, cursor_y;
 		//current == 3 row 2, col 1
+		int cursor_column, cursor_row;
+		cursor_column = ((current/columns)<<0);
+		cursor_row = ((current/rows)<<0);
+		//TODO: Error-Check with different combinations of columns and rows!
 		
-		//cursor_x = ( current * ( columns * spacing_x ) );
+		//LogPrint("Sel 3, colums is: %d \n", ((5/columns)<<0));
+		//LogPrint("Sel 3, row is: %d \n", ((5/rows)<<0));
+		
+		cursor_x = 4 + (cursor_column * spacing_x);
+		cursor_y = (cursor_row * spacing_y) + 1;
 		//cursor_y = ( current * 
-		
-		bitty->Blit(6, -2, 0, 0, bitty->Width, bitty->Height, dispX, dispY, bitty->Width, bitty->Height, 0,0,0,0,0,false); 
+		bitty->FastTile(0, cursor_x, cursor_y, cursor_tile, cursor_cset, 128);
+		bitty->Blit(6, -2, 0, 0, bitty->Width, bitty->Height,/*align to right edge of screen*/ (255-(bitty->Width)) ,
+			-56+1, bitty->Width, bitty->Height, 0,0,0,0,0,false); 
 	
 		
+		
+	}
+	
+	void select(int max, int columns)
+	{
+		if (!game.drawspells) return;
+		if ( Hero->PressRight ) 
+		{
+			Hero->PressRight = false;
+			current = <spelltype>(( current < max ) ? ( current+1 ) : 0);
+		}
+		if ( Hero->PressLeft ) 
+		{
+			Hero->PressLeft = false;
+			current = <spelltype>(( current > 0 ) ? ( current-1 ) : max);
+		}
+		if ( Hero->PressUp ) 
+		{
+			Hero->PressUp = false;
+			//current -= <int>(( current > 0 ) ? ( (columns) ) : max);
+			//current = <spelltype>(( current > 0 ) ? ( current -= columns ) : max);
+		}
+		if ( Hero->PressDown ) 
+		{
+			Hero->PressDown = false;
+			//current += <spelltype>(( current < max ) ? ( columns ) : 0);
+		}
 		
 	}
 	
@@ -1607,7 +1647,11 @@ dmapdata script scroll
 			}
 			bitmaps.scrn->Blit(0, -2, 0, 0, 256, 256, 0, -56, 256, 256, 0, 0, 0, 0, 0, false);
 			if ( Game->Misc[rpg::DRAWSTATS] ) statsmenu.draw();
-			if ( game.drawspells ) spells.draw(spells.bRows, spells.bColumns, ((spells.bitty->Width * 0.5)-4), 18, FONT_FF, white);
+			if ( game.drawspells ) 
+			{
+				spells.select(spells.curLearned, spells.bColumns);
+				spells.draw(spells.bRows, spells.bColumns, ((spells.bitty->Width * 0.5)-4), 18, FONT_FF, white);
+			}
 			//if ( game.drawspells ) spells.draw(4, 2, ((spells.bitty->Width * 0.5)-4), 18, FONT_FF, white);
 			//if ( (scrollcountx && !(Abs(scrollcountx)&16)) || (scrollcounty && !(Abs(scrollcounty)&16)) )
 			
