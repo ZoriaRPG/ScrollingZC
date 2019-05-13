@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.5.2           ///
+/// ALPHA v1.5.3           ///
 /// 13th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -74,6 +74,8 @@
 // v1.5.0 : Add spells menu drawing. 
 // v1.5.1 : Add cursor drawing. Added some structs and other data envelopes for drawing the spells menu.
 // v1.5.2 : Fix cursor column/row positioning.
+// v1.5.3 : Added spelltype getspell(int index) and converted cursor to an index, instead of returning a direct spelltype.
+//        : We need this for arbitrary matching from the spell tables as strings.
 
 
 script typedef untyped STRUCT;
@@ -281,6 +283,7 @@ namespace commands
 STRUCT script spells
 {
 	spelltype current;
+	int selected;
 	def bWidth = 100;
 	def bHeight = 64;
 	int curLearned = 4;
@@ -297,6 +300,7 @@ STRUCT script spells
 	bitmap bitty;
 	def cursor_tile = 26000; //Move to Game->Misc[4];
 	def cursor_cset = 0;
+
 	spelltype select()
 	{
 		spelltype ret = current;
@@ -338,9 +342,10 @@ STRUCT script spells
 		}
 		//draw cursor
 		int cursor_x, cursor_y;
+		int cursor_column, cursor_row;
 	
-		cursor_column = ( current % (columns) );
-		cursor_row = ((current/columns)<<0);
+		cursor_column = ( selected % (columns) );
+		cursor_row = ((selected/columns)<<0);
 		//TODO: Error-Check with different combinations of columns and rows!
 		
 		cursor_x = 4 + (cursor_column * spacing_x);
@@ -356,52 +361,72 @@ STRUCT script spells
 		
 	}
 	
-	int select(int max, int columns)
+	void select(int max, int columns)
 	{
-		if (!game.drawspells) return -1;
+		if (!game.drawspells) return;
 		if ( Hero->PressRight ) 
 		{
 			Hero->PressRight = false;
-			current = <spelltype>(( current < max ) ? ( current+1 ) : 0);
+			selected = (( selected < max ) ? ( selected+1 ) : 0);
 		}
 		if ( Hero->PressLeft ) 
 		{
 			Hero->PressLeft = false;
-			current = <spelltype>(( current > 0 ) ? ( current-1 ) : max);
+			selected = (( selected > 0 ) ? ( selected-1 ) : max);
 		}
 		if ( Hero->PressUp ) 
 		{
 			Hero->PressUp = false;
-			//current -= <int>(( current > 0 ) ? ( (columns) ) : max);
-			//current = <spelltype>(( current > 0 ) ? ( current -= columns ) : max);
+			selected -= (( selected > 0 ) ? ( (columns) ) : max);
+			
 		}
 		if ( Hero->PressDown ) 
 		{
 			Hero->PressDown = false;
-			//current += <spelltype>(( current < max ) ? ( columns ) : 0);
+			selected += (( selected < max ) ? ( columns ) : 0);
 		}
-		return current;
+		if ( Hero->PressB ) 
+		{ 
+			spelltype the_spell = getspell(selected);
+			cast(the_spell); game.drawspells = 0; 
+		}
+		if ( Hero->PressA || Hero->PressEx1 || Hero->PressEx2 || Hero->PressEx3 || Hero->PressEx4 || Hero->PressR || Hero->PressL ) 
+		{
+			game.drawspells = 0;
+		}
+	}
+	
+	spelltype getspell(int index)
+	{
+		//hardcoded nonsense for now. We need to store the spell ID in the strings.
+		switch(index) 
+		{
+			case 0: return heal;
+			case 1: return hurt;
+			case 2: return fire;
+			case 3: return light;
+			default: return heal;
+		}
+		
 	}
 	
 	void cast(spelltype spell)
 	{
 		switch(spell)
 		{
-			case heal: break;
-			case hurt: break;
-			case light: break;
-			case fire: break;
-			case firemore: break;
-			case healmore: break;
-			case hurtmore: break;
-			case healmost: break;
-			case firemost: break;
-			case hurtmost: break;
-			case warp: break;
-			case heal: break;
-			case heal: break;
-			case heal: break;
-			default: break;
+			case heal: LogPrint("Casting spell: %s \n", "Heal"); break;
+			case hurt: LogPrint("Casting spell: %s \n", "Hurt"); break;
+			case light: LogPrint("Casting spell: %s \n", "Light"); break;
+			case fire: LogPrint("Casting spell: %s \n", "Fire"); break;
+			case firemore:LogPrint("Casting spell: %s \n", "Firemore");  break;
+			case healmore: LogPrint("Casting spell: %s \n", "Heamorel"); break;
+			case hurtmore: LogPrint("Casting spell: %s \n", "Hurtmore"); break;
+			case healmost: LogPrint("Casting spell: %s \n", "Healmost"); break;
+			case firemost: LogPrint("Casting spell: %s \n", "Firemost");  break;
+			case hurtmost: LogPrint("Casting spell: %s \n", "Hurtmost");  break;
+			case warp: LogPrint("Casting spell: %s \n", "Warp"); break;
+			
+			default: LogPrint("Casting spell: %s \n", "WTF"); break;
 			
 		}
 		
@@ -412,7 +437,10 @@ STRUCT script spells
 	//name 000 @effect
 	//example: 
 	//blaze 8 @flash
+	
+	//needs to become id, name cost, effect, sound
 	{
+		///need to store spell IDs by string matching
 		bitty = Game->CreateBitmap(height,width);
 		
 		display[dispColumn] = columns; //used when we draw them.
@@ -1667,7 +1695,7 @@ dmapdata script scroll
 			if ( Game->Misc[rpg::DRAWSTATS] ) statsmenu.draw();
 			if ( game.drawspells ) 
 			{
-				LogPrint("Current Spell is: %d \n", spells.select(spells.curLearned, spells.bColumns));
+				spells.select(spells.curLearned, spells.bColumns);
 				spells.draw(spells.bColumns, spells.bRows, ((spells.bitty->Width * 0.5)-4), 18, FONT_FF, white);
 			}
 			//if ( game.drawspells ) spells.draw(4, 2, ((spells.bitty->Width * 0.5)-4), 18, FONT_FF, white);
