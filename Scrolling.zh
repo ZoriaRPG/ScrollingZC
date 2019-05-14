@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.7.1           ///
+/// ALPHA v1.7.2           ///
 /// 14th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -88,6 +88,9 @@
 //        : Can we automate the CURSOR to start on the lowest KNOWN spell, and to pass over unknowns??
 // v1.7.0 : Automate stats generation per level, with string tables.
 // v1.7.1 : std::vbound is now a ternary expression.
+// v1.7.2 : Moved cursor tile, cset to Game->Misc[8].
+//        : Added spells.learn(), spells.forget(). Noted some unused vars, and vars that can be merged into arrays
+//        : in STRUCT spells.
 
 
 script typedef untyped STRUCT;
@@ -318,36 +321,56 @@ namespace commands
 
 STRUCT script spells
 {
-	int displayOrder[32];
-	int refresh;
-	int known[warp+1]={1,1,1,1,1};
-	spelltype current;
-	int selected;
-	def bWidth = 100;
-	def bHeight = 64;
-	int curLearned = 4;
-	enum{ spStr, spCost, spEffect, spDuration, spID, spSFX, spLast };
-	enum { dispColumn, dispRow, dispLast };
-	int data[warp, spLast]; //[<int>warp]; //2d array
-	int display[dispLast];
-	int the_strings[32,64];
+	
+	//Defaults
+	def bWidth = 100; //Default size of spells window; width.
+	def bHeight = 64; //Default size of spells window; height.
 	def dispX = 64;
 	def dispY = 4;
 	def bColumns = 2;
 	def bRows = 4;
 	def cursorWidth = 6;
-	bitmap bitty;
-	def cursor_tile = 26000; //Move to Game->Misc[4];
 	def cursor_cset = 0;
+	
+	//ZString Game->Misc[] Indices
 	def stringMin = 3; //Game->Misc[3]
 	def stringMax = 4; //Game->Misc[4]
 	def windowColumns = 5; //Game->Misc[5];
 	def windowRows = 6; //Game->Misc[6];
+	def cursor_tile = 8; //Game->Misc[8];
+	
+	//enum { refresh, selected, curLearned, maxSpells, infoLast };
+	int displayOrder[32];
+	//int info[infoLast];
+	int refresh; //migrate to info[]
+	int known[warp+1]={1,1,1,1,1};
+	spelltype current;
+	int selected; //migrate to info[]
+	
+	int curLearned = 4; //migrate to info[]
+	enum{ spStr, spCost, spEffect, spDuration, spID, spSFX, spLast };
+	enum { dispColumn, dispRow, dispLast };
+	int data[warp, spLast]; //[<int>warp]; //2d array
+	int display[dispLast]; //This is never actually used. Prune?
+	int the_strings[32,64]; //Holds master record of all spell names known.
+	
+	bitmap bitty;
+
 	spelltype select()
 	{
 		spelltype ret = current;
 		
 		return ret;
+	}
+	void learn(spelltype the_spell)
+	{
+		known[the_spell] = 1;
+		++curLearned;
+	}
+	void forget(spelltype the_spell)
+	{
+		known[the_spell] = 0;
+		--curLearned;
 	}
 	int know(int input_string)//we check against the input string
 	{
@@ -457,7 +480,10 @@ STRUCT script spells
 		//LogPrint("Current Cursor Column: %d \n", cursor_column);
 		//LogPrint("Current Cursor Row: %d \n", cursor_row);
 		
-		bitty->FastTile(0, cursor_x, cursor_y, cursor_tile, cursor_cset, 128);
+		int cursorTile = (Game->Misc[cursor_tile] << 0);
+		int cursorCSet = ( Game->Misc[cursor_tile] -  (Game->Misc[cursor_tile] << 0) ) * 10000; //decimal portion
+		
+		bitty->FastTile(0, cursor_x, cursor_y, cursorTile, cursorCSet, 128);
 		bitty->Blit(6, -2, 0, 0, bitty->Width, bitty->Height,/*align to right edge of screen*/ (255-(bitty->Width)) ,
 			-56+1, bitty->Width, bitty->Height, 0,0,0,0,0,false); 
 	
