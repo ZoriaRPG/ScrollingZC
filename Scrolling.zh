@@ -102,6 +102,8 @@
 
 //! NOTES: spelltype needa a 'none' value, for NULL, so that we csan have 'P0' for levelups, when not learning new spells. 
 
+//! TODO: Experience Table Strings
+
 script typedef untyped STRUCT;
 typedef const int def;
 
