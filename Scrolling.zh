@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.8.0           ///
+/// ALPHA v1.8.1           ///
 /// 14th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -94,6 +94,8 @@
 // v1.8.0 : Spell strings now use String->Next, rather than first and last position in their init.
 //        : This means that the end-user can assign any number of non-sequential strings as spell strings,
 //        : by setting the 'Next String' attribute, to create a chain.
+// v1.8.1 : Allow 'level string' IDs to be non-contiguous. They now work in the same way as spell strings,
+//        : using the 'String->Next' attribute of each string. 
 
 
 script typedef untyped STRUCT;
@@ -1470,7 +1472,7 @@ hero script h_init
 		spells.init(Game->Misc[spells.stringMin], Game->Misc[spells.windowColumns], 
 			Game->Misc[spells.windowRows], spells.bWidth, spells.bHeight);
 		spells.listall();
-		
+		character.init(Game->Misc[character.lvlStrFirst]);
 		//(int layer, bitmap dest, int columns, int rows, int spacing_x, int spacing_y, int font, int colour)
 		
 	}
@@ -1489,9 +1491,28 @@ STRUCT script character
 {
 	int stats[luck+1]={1};
 	int steps[2]={1,2};
+	int stack[256];
+	
+	void init(int first_str)
+	{
+		//Stores all level strings in character.stack[]
+		stack[1] = first_str; ++stack[0]; int nx;
+		messagedata the_message = Game->LoadMessageData(first_str);
+		//
+		while(the_message->Next)
+		{
+			++stack[0];
+			nx = the_message->Next;
+			LogPrint("Next Level String in sequence is: %d \n", nx);
+			stack[stack[0]] = nx;
+			
+			the_message = Game->LoadMessageData(nx);
+		}
+		
+	}
 	
 	def lvlStrFirst = 7; //Game->Misc[7]
-	void levelup(int firstString)
+	void levelup()
 	{
 		//More strings nonsense ahoy.
 		//String format:
@@ -1506,7 +1527,9 @@ STRUCT script character
 		//stats do not increase, magic increases, hp increases, learn spell 4
 		
 		int chr[256];
-		Game->GetMessage(firstString+(stats[level]-1), chr);
+		int lvl = stats[level];
+		LogPrint("Level is %d \n", lvl);
+		Game->GetMessage(stack[lvl], chr);
 		LogPrint("Level String Contents: %s \n", chr);
 		
 		int changes[4];
@@ -1544,7 +1567,7 @@ global script active
 {
 	void run()
 	{
-		character.levelup(Game->Misc[character.lvlStrFirst]);
+		character.levelup();
 		LogPrint("Clearing %s \n", "mapInfo.enemiesInitialised");
 		std::memset(mapInfo.enemiesInitialised, 0, std::sizeof(mapInfo.enemiesInitialised));
 		spells.refresh = 1; //do this on lev el up, too
