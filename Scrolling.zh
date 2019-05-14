@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.7.2           ///
+/// ALPHA v1.8.0           ///
 /// 14th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -91,6 +91,9 @@
 // v1.7.2 : Moved cursor tile, cset to Game->Misc[8].
 //        : Added spells.learn(), spells.forget(). Noted some unused vars, and vars that can be merged into arrays
 //        : in STRUCT spells.
+// v1.8.0 : Spell strings now use String->Next, rather than first and last position in their init.
+//        : This means that the end-user can assign any number of non-sequential strings as spell strings,
+//        : by setting the 'Next String' attribute, to create a chain.
 
 
 script typedef untyped STRUCT;
@@ -332,6 +335,7 @@ STRUCT script spells
 	def cursorWidth = 6;
 	def cursor_cset = 0;
 	
+	int stack[256];
 	//ZString Game->Misc[] Indices
 	def stringMin = 3; //Game->Misc[3]
 	def stringMax = 4; //Game->Misc[4]
@@ -602,7 +606,7 @@ STRUCT script spells
 		
 	}
 	//6,7,8,9,10
-	void init(int first_str, int last_str, int columns, int rows, int height, int width) //stores the string ID, the cost, and the effect for each spell, using ths string editor
+	void init(int first_str, int columns, int rows, int height, int width) //stores the string ID, the cost, and the effect for each spell, using ths string editor
 	//string format is: 
 	//name 000 @effect
 	//example: 
@@ -610,6 +614,22 @@ STRUCT script spells
 	
 	//needs to become id, name cost, effect, sound
 	{
+		//Get the first string, and read in sequence, each 'next strick', pushing each to the stack.
+		//stack[0] will be the total count, stack[1] and above will be the string IDs. 
+		stack[1] = first_str; ++stack[0]; int nx;
+		messagedata the_message = Game->LoadMessageData(first_str);
+		//
+		while(the_message->Next)
+		{
+			++stack[0];
+			nx = the_message->Next;
+			LogPrint("Next String in sequence is: %d \n", nx);
+			stack[stack[0]] = nx;
+			
+			the_message = Game->LoadMessageData(nx);
+		}
+			
+		
 		///need to store spell IDs by string matching
 		bitty = Game->CreateBitmap(height,width);
 		
@@ -620,15 +640,20 @@ STRUCT script spells
 		LogPrint("array spells.data[] is size %d \n", sz);
 		//string format SPELLNAME 000 @effects
 		//example: hurtmore, 4 @2
+		int count = stack[0];
+		LogPrint("Strings count is: %d \n", count);
+		int last_str = stack[count];
+		LogPrint("Last String is: %d \n", last_str);
 		int max = ( ( ( last_str - first_str ) + 1 )  < spLast ) ? (( last_str - first_str ) + 1) : spLast;
-		for ( int q = 0; q < max; ++q ) //the max number of strings to process
+		for ( int q = 1; q < count; ++q ) //the max number of strings to process
 		{
+			LogPrint("Proceesing string: %d \n", stack[q]);
 			int chr[256];
 			int sp_str[64];
 			int the_id[16];
 			int the_sound[16];
-			data[q*warp+spStr] = first_str; //first_str is also the current string that we are reading
-			Game->GetMessage(q+first_str, chr);
+			data[q*warp+spStr] = stack[q]; //first_str is also the current string that we are reading
+			Game->GetMessage(stack[q], chr); //No longer need they be sequential.
 			//strip trailing spaces
 			int w;
 			for ( w = 255; chr[w] != ' ' && chr[w] != 0; --w )
@@ -1442,7 +1467,7 @@ hero script h_init
 		bitmaps.Init();
 		//statsmenu.setMessages(1, 5);
 		this->CollDetection = false;
-		spells.init(Game->Misc[spells.stringMin],Game->Misc[spells.stringMax], Game->Misc[spells.windowColumns], 
+		spells.init(Game->Misc[spells.stringMin], Game->Misc[spells.windowColumns], 
 			Game->Misc[spells.windowRows], spells.bWidth, spells.bHeight);
 		spells.listall();
 		
