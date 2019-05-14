@@ -103,6 +103,7 @@
 
 //! NOTES: spelltype needa a 'none' value, for NULL, so that we csan have 'P0' for levelups, when not learning new spells. 
 
+//TODO: use high/low float for border map/screen; and for spell window columns/rows. 
 
 script typedef untyped STRUCT;
 typedef const int def;
