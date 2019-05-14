@@ -100,6 +100,7 @@
 // v1.8.3 : Fix compile.
 //        : Stats menu strings are now also in an arbitrary sequence, and the first string is now set from Quest->Misc[4].
 
+//! NOTES: spelltype needa a 'none' value, for NULL, so that we csan have 'P0' for levelups, when not learning new spells. 
 
 script typedef untyped STRUCT;
 typedef const int def;
