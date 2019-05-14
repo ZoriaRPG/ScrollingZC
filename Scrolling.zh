@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.8.1           ///
+/// ALPHA v1.8.2           ///
 /// 14th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -96,6 +96,7 @@
 //        : by setting the 'Next String' attribute, to create a chain.
 // v1.8.1 : Allow 'level string' IDs to be non-contiguous. They now work in the same way as spell strings,
 //        : using the 'String->Next' attribute of each string. 
+// v1.8.2 : Abort character.init() or spells.init() if first_string is NULL. 
 
 
 script typedef untyped STRUCT;
@@ -613,7 +614,7 @@ STRUCT script spells
 	//name 000 @effect
 	//example: 
 	//blaze 8 @flash
-	
+	if ( !first_str ) return; //Abort if pointing at NULL.
 	//needs to become id, name cost, effect, sound
 	{
 		//Get the first string, and read in sequence, each 'next strick', pushing each to the stack.
@@ -1495,6 +1496,7 @@ STRUCT script character
 	
 	void init(int first_str)
 	{
+		if ( !first_str ) return; //Abort if pointing at NULL.
 		//Stores all level strings in character.stack[]
 		stack[1] = first_str; ++stack[0]; int nx;
 		messagedata the_message = Game->LoadMessageData(first_str);
