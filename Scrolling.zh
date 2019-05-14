@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.7.0           ///
+/// ALPHA v1.7.1           ///
 /// 14th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -86,7 +86,8 @@
 // v1.6.0 : Automate handling of known spells. Only known spells will be displayed.
 //        : Only cast if actually known.
 //        : Can we automate the CURSOR to start on the lowest KNOWN spell, and to pass over unknowns??
-// v1.7.0 : Automate stats generation per level, with string tables. 
+// v1.7.0 : Automate stats generation per level, with string tables.
+// v1.7.1 : std::vbound is now a ternary expression.
 
 
 script typedef untyped STRUCT;
@@ -114,6 +115,7 @@ namespace std
 	int sizeof(int ptr) { return SizeOfArray(ptr); }
 	int vbound(int v, int a, int b)
 	{
+		/*
 		if ( a < b ) 
 		{
 			if ( v <= a ) return a;
@@ -126,7 +128,8 @@ namespace std
 			if ( v >= a ) return a;
 			return v;
 		}
-		//return a < b ? (v < a ? (a) : (v > b ? (b) : (v))) : (v < b ? (b) : (v > a ? (a) : (v)));
+		*/
+		return a < b ? (v < a ? (a) : (v > b ? (b) : (v))) : (v < b ? (b) : (v > a ? (a) : (v)));
 	}
 	bool matchstring(int a, int b)
 	{
