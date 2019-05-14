@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.8.2           ///
+/// ALPHA v1.8.3           ///
 /// 14th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -97,6 +97,8 @@
 // v1.8.1 : Allow 'level string' IDs to be non-contiguous. They now work in the same way as spell strings,
 //        : using the 'String->Next' attribute of each string. 
 // v1.8.2 : Abort character.init() or spells.init() if first_string is NULL. 
+// v1.8.3 : Fix compile.
+//        : Stats menu strings are now also in an arbitrary sequence, and the first string is now set from Quest->Misc[4].
 
 
 script typedef untyped STRUCT;
@@ -614,9 +616,10 @@ STRUCT script spells
 	//name 000 @effect
 	//example: 
 	//blaze 8 @flash
-	if ( !first_str ) return; //Abort if pointing at NULL.
+	
 	//needs to become id, name cost, effect, sound
 	{
+		if ( !first_str ) return; //Abort if pointing at NULL.
 		//Get the first string, and read in sequence, each 'next strick', pushing each to the stack.
 		//stack[0] will be the total count, stack[1] and above will be the string IDs. 
 		stack[1] = first_str; ++stack[0]; int nx;
@@ -900,7 +903,9 @@ STRUCT script statsmenu
 	int data[last];
 	int values[MAX_VALUES]; //stat values
 	int msg[MAX_MESSAGES]; //menu text lines
+	int stack[256];
 	
+	def statsFirstmessage = 4; //game->Misc[4]
 	void init(int ptr)
 	{
 		bitty = Game->CreateBitmap(bWidth,bHeight);
@@ -964,14 +969,30 @@ STRUCT script statsmenu
 		//msg[data[curMsg]] = m;
 		//++data[curMsg];
 	}
-	void setMessages(int first, int num)
+	void setMessages(int first_str)
 	{
 		//messagedata md;
 		//LogPrint("setMessages(first,num) data[numOptions] is %d \n", data[numOptions]);
-		for(int q = 0; q < num; ++q )
+		if ( !first_str ) return; //Abort if pointing at NULL.
+		//Stores all level strings in character.stack[]
+		stack[1] = first_str; ++stack[0]; int nx;
+		messagedata the_message = Game->LoadMessageData(first_str);
+		//
+		while(the_message->Next)
+		{
+			++stack[0];
+			nx = the_message->Next;
+			LogPrint("Next Stat Display String in sequence is: %d \n", nx);
+			stack[stack[0]] = nx;
+			
+			the_message = Game->LoadMessageData(nx);
+		}
+		int count = stack[0];
+		
+		for ( int q = 0; q < count; ++q )
 		{
 			//md = Game->LoadMessageData(q+first);
-			msg[q] = first+q;
+			msg[q] = stack[q+1];
 		}
 	}
 	void set(int p, int v)
@@ -994,7 +1015,7 @@ STRUCT script statsmenu
 		}
 		msg[mID] = msg;
 	}
-	void setMessages(int ptr)
+	void extractMessages(int ptr)
 	{
 		if ( SizeOfArray(ptr) != MAX_MESSAGES ) 
 		{
@@ -1449,7 +1470,7 @@ global script Init
 		statsmenu.setMenuProperties(1, statsmenu.X, -56, -1, 5, statsmenu.COLOUR, statsmenu.FONT, statsmenu.FONT_H,
 			statsmenu.FONT_W, statsmenu.KERN, statsmenu.BG, statsmenu.bWidth, statsmenu.bHeight, statsmenu.msg, -1);
 		
-		statsmenu.setMessages(1, 5);
+		statsmenu.setMessages(Game->Misc[statsmenu.statsFirstmessage]);
 		
 		switch(rpg::Beta())
 		{
