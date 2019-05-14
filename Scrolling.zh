@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.6.0           ///
+/// ALPHA v1.7.0           ///
 /// 14th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -86,6 +86,7 @@
 // v1.6.0 : Automate handling of known spells. Only known spells will be displayed.
 //        : Only cast if actually known.
 //        : Can we automate the CURSOR to start on the lowest KNOWN spell, and to pass over unknowns??
+// v1.7.0 : Automate stats generation per level, with string tables. 
 
 
 script typedef untyped STRUCT;
@@ -164,7 +165,15 @@ namespace rpg
 		{
 			return Rand(sides)+1;
 		}
+		int roll(int dice, int sides)
+		{
+			int v;
+			for ( int q = 0; q < dice; ++q )
+				v+= Rand(sides)+1;
+			return v;
+		}
 	}
+	
 	
 }
 
@@ -481,6 +490,7 @@ STRUCT script spells
 		{ 
 			spelltype the_spell = getspell(selected);
 			if ( known[the_spell] )
+			{
 				if(( Hero->MP ) >= getcost(selected) )
 				{
 					Audio->PlaySound(getsound(selected));
@@ -1423,7 +1433,56 @@ STRUCT script game
 
 STRUCT script character
 {
+	int stats[luck+1]={1};
 	int steps[2]={1,2};
+	
+	def lvlStrFirst = 7; //Game->Misc[7]
+	void levelup(int firstString)
+	{
+		//More strings nonsense ahoy.
+		//String format:
+		//minStr + levelId = current string
+		//S1 / 0 : Stats increase? 1 yes, 0 no
+		//M1 / 0 : Magic increases?
+		//H1 / 0 : health increases?
+		//P## : Learn spell IDs
+		//! end of commands
+		//example
+		//S0 M1 H1 S4!
+		//stats do not increase, magic increases, hp increases, learn spell 4
+		
+		int chr[256];
+		Game->GetMessage(firstString+(stats[level]-1), chr);
+		LogPrint("Level String Contents: %s \n", chr);
+		
+		int changes[4];
+		int the_number[16];
+		
+		int pos; int changetype;
+		for ( int q = 0; (chr[q] != 0 && chr[q] != '!'); ++q )
+		{
+			if ( chr[q] == 'S' || chr[q] == 'M' || chr[q] == 'H' || chr[q] == 'P' )
+			{
+				int number_pos;
+				for ( int w = q; (chr[w] != ' ' && chr[w] != 0 && chr[w] != '!'); ++w )
+				{
+					if ( isNumber(chr[w]) )
+					{
+						the_number[number_pos] = chr[w];
+						++number_pos;
+						if ( number_pos > 15 ) break; //Max size, don't overflow.
+					}
+				}
+				changes[changetype] = atoi(the_number);
+				++changetype;
+			}
+		}
+		for ( int q = 0; q < 4; ++q )
+		{
+			LogPrint("Change %d is: %d \n", q, changes[q]);
+		}
+		//INCREASE STATS HERE
+	}
 }
 	
 
@@ -1431,6 +1490,7 @@ global script active
 {
 	void run()
 	{
+		character.levelup(Game->Misc[character.lvlStrFirst]);
 		LogPrint("Clearing %s \n", "mapInfo.enemiesInitialised");
 		std::memset(mapInfo.enemiesInitialised, 0, std::sizeof(mapInfo.enemiesInitialised));
 		spells.refresh = 1; //do this on lev el up, too
