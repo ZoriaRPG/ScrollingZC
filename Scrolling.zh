@@ -2,8 +2,8 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.5.6           ///
-/// 13th May, 2019         ///
+/// ALPHA v1.6.0           ///
+/// 14th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
 // v0.2.0 : Added Solidity
@@ -83,6 +83,9 @@
 //        : when the player casts it, its internal ID is 3, and it plays SFX 53 when cast.
 // v1.5.5 : Fix spell menu cusrow wrapping to +1 position, and corrected the menu column/row dimensions in spells.init().
 // v1.5.6 : Moved spells.init param vars into Game->Misc[3, 4, 5, and 6].
+// v1.6.0 : Automate handling of known spells. Only known spells will be displayed.
+//        : Only cast if actually known.
+//        : Can we automate the CURSOR to start on the lowest KNOWN spell, and to pass over unknowns??
 
 
 script typedef untyped STRUCT;
@@ -123,6 +126,20 @@ namespace std
 			return v;
 		}
 		//return a < b ? (v < a ? (a) : (v > b ? (b) : (v))) : (v < b ? (b) : (v > a ? (a) : (v)));
+	}
+	bool matchstring(int a, int b)
+	{
+		bool match;
+		//if ( strlen(a) != strlen(b) )
+		//LogPrint("Size of string a: %d \n", SizeOfArray(a));
+		//LogPrint("Size of string b: %d \n", SizeOfArray(b));
+		for ( int q = 0; (a[q] != 0 && b[q] != 0); ++q )
+		{
+			if ( a[q] == b[q] ) match = true;
+			else match = false;
+			if ( !match ) return false;
+		}
+		return match;
 	}
 }
 
@@ -289,6 +306,9 @@ namespace commands
 
 STRUCT script spells
 {
+	int displayOrder[32];
+	int refresh;
+	int known[warp+1]={1,1,1,1,1};
 	spelltype current;
 	int selected;
 	def bWidth = 100;
@@ -317,6 +337,58 @@ STRUCT script spells
 		
 		return ret;
 	}
+	int know(int input_string)//we check against the input string
+	{
+		LogPrint("know() input string is %s \n", input_string);
+		int temp[256];
+		//data spID should be in the same order as the_strings
+		
+		//count spaces
+		int count; int temp_pos;
+		//LogPrint("the_strings[0] is %d \n", the_strings[0]);
+		for ( int q = 0; (the_strings[q] != 0 && the_strings[q] != '!'); ++q )
+		{
+			temp[temp_pos] = the_strings[q];
+			++temp_pos;
+			if ( the_strings[q] == ' ' ) //we hit a space
+			{
+				LogPrint("know() temp[] is %s \n", temp);
+				++count;
+				//temp[temp_pos] = 0;
+				//return true;
+				//temp[temp_pos] = 0;
+				temp[temp_pos-1] = 0;
+				//for ( int w = 0; temp[w] != 0; ++w )
+				//{
+				//	LogPrint("temp[] index %d is: %d \n", w, temp[w]);
+				//}
+				//for ( int e = 0; input_string[e] != 0; ++e )
+				//{
+				//	LogPrint("input_string[] index %d is: %d \n", e, input_string[e]);
+				//}
+				//bool m = std::matchstring(temp, input_string);
+				//LogPrint("std::matchstring returned %s \n", ( m ? "true" : "false") );
+				//LogPrint("strcmp() returned %d \n", strcmp(temp, input_string));
+				//if ( !strcmp(temp, input_string) )
+				if ( std::matchstring(temp, input_string) )
+				{
+					LogPrint("Matched string: %s \n", temp);
+					//a match, so, we check the ID based on count
+					int id = data[count*warp+spID];
+					return id; //known[id];
+				}
+				//wipe the temp string
+				for ( int q = 0; q < 256; ++q ) temp[q] = 0;
+				//reset the position
+				temp_pos = 0;
+			}
+		}
+		
+	}
+	void listall()
+	{
+		LogPrint("All spells string: %s \n", the_strings);
+	}
 	void draw(int columns, int rows, int spacing_x, int spacing_y, int font, dqcolours colour)
 	{
 		//current = <spelltype>2;
@@ -343,13 +415,23 @@ STRUCT script spells
 					++pos;
 				}
 				++pos; //skip over the next space!
-				//LogPrint("spells.draw(), single string is %s \n", tempstr);
-				bitty->DrawString(0, x, y, font, colour, -1, 0, tempstr, 128);
+				if ( spells.refresh )
+				{
+					int known = know(tempstr);
+					LogPrint("known id: %d \n", known);
+					displayOrder[q*rows+w] = known; //This is the order of the menu.
+				}
 				
+				//LogPrint("spells.draw(), single string is %s \n", tempstr);
+				if ( spells.known[displayOrder[q*rows+w]])
+				{
+					bitty->DrawString(0, x, y, font, colour, -1, 0, tempstr, 128);
+				}
 				x += spacing_x+cursorWidth;
 			}
 			y += spacing_y;
 		}
+		spells.refresh = 0;
 		//draw cursor
 		int cursor_x, cursor_y;
 		int cursor_column, cursor_row;
@@ -398,7 +480,13 @@ STRUCT script spells
 		if ( Hero->PressB ) 
 		{ 
 			spelltype the_spell = getspell(selected);
-			cast(the_spell); game.drawspells = 0; 
+			if ( known[the_spell] )
+				if(( Hero->MP ) >= getcost(selected) )
+				{
+					Audio->PlaySound(getsound(selected));
+					cast(the_spell, geteffect(selected)); game.drawspells = 0; 
+				}
+			}
 		}
 		if ( Hero->PressA || Hero->PressEx1 || Hero->PressEx2 || Hero->PressEx3 || Hero->PressEx4 || Hero->PressR || Hero->PressL ) 
 		{
@@ -408,10 +496,10 @@ STRUCT script spells
 	
 	spelltype getspell(int index)
 	{
-		LogPrint("Spell ID should be: %d \n", data[index*warp+spID]);
-		int cost = getcost(index);
-		int effect = geteffect(index);
-		int sfx = getsound(index);
+		//LogPrint("Spell ID should be: %d \n", data[index*warp+spID]);
+		///int cost = getcost(index);
+		//int effect = geteffect(index);
+		//int sfx = getsound(index);
 		return <spelltype> data[index*warp+spID];
 		//hardcoded nonsense for now. We need to store the spell ID in the strings.
 		//switch(index) 
@@ -452,7 +540,7 @@ STRUCT script spells
 		
 	}
 	
-	void cast(spelltype spell)
+	void cast(spelltype spell, int spell_visuals)
 	{
 		
 		switch(spell)
@@ -1317,7 +1405,7 @@ hero script h_init
 		this->CollDetection = false;
 		spells.init(Game->Misc[spells.stringMin],Game->Misc[spells.stringMax], Game->Misc[spells.windowColumns], 
 			Game->Misc[spells.windowRows], spells.bWidth, spells.bHeight);
-		
+		spells.listall();
 		
 		//(int layer, bitmap dest, int columns, int rows, int spacing_x, int spacing_y, int font, int colour)
 		
@@ -1345,6 +1433,7 @@ global script active
 	{
 		LogPrint("Clearing %s \n", "mapInfo.enemiesInitialised");
 		std::memset(mapInfo.enemiesInitialised, 0, std::sizeof(mapInfo.enemiesInitialised));
+		spells.refresh = 1; //do this on lev el up, too
 		while(1)
 		{
 			++game.frame;
