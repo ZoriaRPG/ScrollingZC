@@ -2,8 +2,8 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.9.0           ///
-/// 14th May, 2019         ///
+/// ALPHA v1.10.0          ///
+/// 15th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
 // v0.2.0 : Added Solidity
@@ -100,6 +100,10 @@
 // v1.8.3 : Fix compile.
 //        : Stats menu strings are now also in an arbitrary sequence, and the first string is now set from Quest->Misc[4].
 // v1.9.0 : Added Xp table string system, automated as the others. it uses Game->Misc[10] for its 'first string id'.
+// v1.10.0: Added STRUT battlemenu, with initial functions to create, draw, and select options.
+//        : Slight modification to drawing in other menus. Don't draw rects every iteration of the stats loop!
+//        : Added duplicate bitmaps for use when warping. We will blit the dest to these, then flip-flop the current drawn bitmaps.
+//        : Added game.currentBitmaps[max];
 
 //! NOTES: spelltype needa a 'none' value, for NULL, so that we csan have 'P0' for levelups, when not learning new spells. 
 
@@ -941,6 +945,137 @@ STRUCT script xp
 	}
 }
 
+STRUCT script battlemenu
+{
+	enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, font_width, kerning, background, width, height, messages, curMsg, last };
+	bitmap bitty;
+	int stack[256];
+	int data[last];
+	def bWidth = 64; //make non-constant, later
+	def bHeight = 96; //make non-constant, later
+	def firstBattleString = 11; //Game->Misc[11]
+	int the_strings[64, 64];
+	int msg[32];
+	//int selection;
+	int selected;
+	def cursorWidth = 6;
+	def cursor_cset = 0;
+	int refresh;
+	def cursor_tile = 8; //Game->Misc[8];
+	
+	void init(int first_str)
+	{
+		bitty = Game->CreateBitmap(bWidth,bHeight);
+		//get options
+		if ( !first_str ) return; //Abort if pointing at NULL.
+		//Stores all level strings in character.stack[]
+		stack[1] = first_str; ++stack[0]; int nx;
+		messagedata the_message = Game->LoadMessageData(first_str);
+		//
+		while(the_message->Next)
+		{
+			++stack[0];
+			nx = the_message->Next;
+			LogPrint("Next Battle Display String in sequence is: %d \n", nx);
+			stack[stack[0]] = nx;
+			
+			the_message = Game->LoadMessageData(nx);
+		}
+		int count = stack[0];
+		
+		for ( int q = 0; q < count; ++q )
+		{
+			//md = Game->LoadMessageData(q+first);
+			msg[q] = stack[q+1];
+		}
+		//message IDs are stored.
+		
+	}
+	void draw(int columns, int rows, int spacing_x, int spacing_y)
+	{
+		//background and outline
+		bitty->Rectangle(0, 0, 0, bitty->Width-1, bitty->Height-1, 0x4F, -1, 0,0,0,true,128);
+		bitty->Rectangle(0, 1, 1, bitty->Width-2, bitty->Height-2, 0x01, -1, 0,0,0,true,128);
+		bitty->Rectangle(0, 2, 2, bitty->Width-3, bitty->Height-3, 0x4F, -1, 0,0,0,true,128);
+		int x, y;
+		x = 2+cursorWidth;
+		y = 3;
+		int pos;
+		int command;
+		for ( int q = 0; q < rows; ++q )
+		{
+			x = 2+cursorWidth;
+			for ( int w = 0; w < columns; ++w )
+			{
+				int tempstr[64]; int dest_pos;
+				Game->GetMessage(msg[command], tempstr);
+				bitty->DrawString(0, x, y, font, colour, -1, 0, tempstr, 128);
+				x += spacing_x+cursorWidth;
+			}
+			y += spacing_y;
+		}
+		refresh = 0;
+		//draw cursor
+		int cursor_x, cursor_y;
+		int cursor_column, cursor_row;
+	
+		cursor_column = ( selected % (columns) );
+		cursor_row = ((selected/columns)<<0);
+		//TODO: Error-Check with different combinations of columns and rows!
+		
+		cursor_x = 4 + (cursor_column * spacing_x);
+		cursor_y = (cursor_row * spacing_y) + 1;
+		//LogPrint("Current Cursor Column: %d \n", cursor_column);
+		//LogPrint("Current Cursor Row: %d \n", cursor_row);
+		
+		int cursorTile = (Game->Misc[cursor_tile] << 0);
+		int cursorCSet = ( Game->Misc[cursor_tile] -  (Game->Misc[cursor_tile] << 0) ) * 10000; //decimal portion
+		
+		bitty->FastTile(0, cursor_x, cursor_y, cursorTile, cursorCSet, 128);
+		bitty->Blit(6, -2, 0, 0, bitty->Width, bitty->Height,/*align to right edge of screen*/ (255-(bitty->Width)) ,
+			-56+1, bitty->Width, bitty->Height, 0,0,0,0,0,false); 
+		
+	}
+	int select(int max, int columns)
+	{
+		if (!game.drawbattlemenu) return -1;
+		if ( Hero->PressRight ) 
+		{
+			Hero->PressRight = false;
+			selected = (( selected < (max-1) ) ? ( selected+1 ) : 0);
+			return -1;
+		}
+		if ( Hero->PressLeft ) 
+		{
+			Hero->PressLeft = false;
+			selected = (( selected > 0 ) ? ( selected-1 ) : max);
+			return -1;
+		}
+		if ( Hero->PressUp ) 
+		{
+			Hero->PressUp = false;
+			selected -= (( selected > 0 ) ? ( (columns) ) : max);
+			return -1;
+			
+		}
+		if ( Hero->PressDown ) 
+		{
+			Hero->PressDown = false;
+			selected += (( selected < (max-1) ) ? ( columns ) : 0);
+			return -1;
+		}
+		if ( Hero->PressB ) 
+		{ 
+			return selected;
+		}
+		//Can't exit from here.
+		//if ( Hero->PressA || Hero->PressEx1 || Hero->PressEx2 || Hero->PressEx3 || Hero->PressEx4 || Hero->PressR || Hero->PressL ) 
+		//{
+		//	game.drawspells = 0;
+		//}
+	}
+}
+
 STRUCT script statsmenu
 {
 	enum { valid, x, y, selection, cursor, numOptions, colour, font, font_height, font_width, kerning, background, width, height, messages, curMsg, last };
@@ -948,8 +1083,8 @@ STRUCT script statsmenu
 	def MAX_MESSAGES = 20;
 	def MAX_VALUES = 20;
 	bitmap bitty;
-	def bWidth = 64;
-	def bHeight = 96;
+	def bWidth = 64; //make non-constant, later
+	def bHeight = 96; //make non-constant, later
 	def X = 0;
 	def Y = 0;
 	def FONT = FONT_FF;
@@ -988,6 +1123,9 @@ STRUCT script statsmenu
 		//{
 		//	LogPrint("msg[] %d is %d \n", q, msg[q]);
 		//}			
+		bitty->Rectangle(0, 0, 0, bitty->Width-1, bitty->Height-1, 0x4F, -1, 0,0,0,true,128);
+		bitty->Rectangle(0, 1, 1, bitty->Width-2, bitty->Height-2, 0x01, -1, 0,0,0,true,128);
+		bitty->Rectangle(0, 2, 2, bitty->Width-3, bitty->Height-3, 0x4F, -1, 0,0,0,true,128);
 		for ( int q = 0; q < data[numOptions]; ++q )
 		{
 			//LogPrint("Current message in draw() is %d \n", msg[q]);
@@ -1007,9 +1145,7 @@ STRUCT script statsmenu
 			//for ( int ww = 0; curvalue[ww] != 0; ++ww ) len_x += data[font_width]; //Get numerical text width
 			//LogPrint("Menu message is: %s \n", curmsg);
 			//bitty->Clear(0);
-			bitty->Rectangle(0, 0, 0, bitty->Width-1, bitty->Height-1, 0x4F, -1, 0,0,0,true,128);
-			bitty->Rectangle(0, 1, 1, bitty->Width-2, bitty->Height-2, 0x01, -1, 0,0,0,true,128);
-			bitty->Rectangle(0, 2, 2, bitty->Width-3, bitty->Height-3, 0x4F, -1, 0,0,0,true,128);
+			
 			bitty->DrawString(6,4, text_y, data[font], data[colour], -1, 0, curmsg, 128);
 			//LogPrint("Drawing stats menu text: %s \n", curmsg);
 			bitty->DrawString(6,bitty->Width - 18, text_y, data[font], data[colour], -1, 0, curvalue, 128);
@@ -1148,6 +1284,24 @@ STRUCT script bitmaps
 	bitmap overscan_iflag;
 	bitmap border;
 	
+	//Secondary bitmaps for use when warping
+	//We blit the warp dest out to the second bitmap, then swap the one from which we are drawing.
+	
+	//Map bitmaps.
+	bitmap fullmap_second; //the current, full map
+	bitmap fullmap_solid_second; //solidity of the current map
+	bitmap fullmap_type_second; //combo types on the current map
+	bitmap fullmap_flag_second; //combo flags on the current map
+	bitmap fullmap_iflag_second; //combo inh. flags on the current map
+	
+	//OVERSCAN bitmaps. These have a generic border, used for Out of Bounds.
+	bitmap overscan_second;
+	bitmap overscan_solid_second;
+	bitmap overscan_type_second;
+	bitmap overscan_flag_second;
+	bitmap overscan_iflag_second;
+	bitmap border_second;
+	
 	//Sprite bitmaps. 
 	bitmap herosprite; //Used to draw the player sprite.
 	bitmap heroBUF; //Used as a buffer for the player sprite. 
@@ -1170,7 +1324,20 @@ STRUCT script bitmaps
 		overscan_type->Clear(0);	
 		overscan_flag->Clear(0);	
 		overscan_iflag->Clear(0);	
-		border->Clear(0);	
+		border->Clear(0);
+		
+		fullmap_second->Clear(0);	
+		fullmap_solid_second->Clear(0);	
+		fullmap_type_second->Clear(0);	
+		fullmap_flag_second->Clear(0);	
+		fullmap_iflag_second->Clear(0);	
+		overscan_second->Clear(0);	
+		overscan_solid_second->Clear(0);	
+		overscan_type_second->Clear(0);	
+		overscan_flag_second->Clear(0);	
+		overscan_iflag_second->Clear(0);	
+		border_second->Clear(0);
+		
 		herosprite->Clear(0);	
 		heroBUF->Clear(0);
 		enemyQuad->Clear(0);
@@ -1195,6 +1362,19 @@ STRUCT script bitmaps
 		overscan_flag = Game->CreateBitmap(256*18, 176*10);	
 		overscan_iflag = Game->CreateBitmap(256*18, 176*10);
 		border = Game->CreateBitmap(256, 176);
+		
+		fullmap_second = Game->CreateBitmap(256*16, 176*8);
+		fullmap_solid_second = Game->CreateBitmap(256*16, 176*8);
+		fullmap_type_second = Game->CreateBitmap(256*16, 176*8);
+		fullmap_flag_second = Game->CreateBitmap(256*16, 176*8);
+		fullmap_iflag_second = Game->CreateBitmap(256*16, 176*8);
+		
+		overscan_second = Game->CreateBitmap(256*18, 176*10);
+		overscan_solid_second  = Game->CreateBitmap(256*18, 176*10);
+		overscan_type_second = Game->CreateBitmap(256*18, 176*10);	
+		overscan_flag_second = Game->CreateBitmap(256*18, 176*10);	
+		overscan_iflag_second = Game->CreateBitmap(256*18, 176*10);
+		border_second = Game->CreateBitmap(256, 176);
 		
 		herosprite = Game->CreateBitmap(16,16);
 		heroBUF = Game->CreateBitmap(16,16);
@@ -1563,9 +1743,50 @@ hero script h_init
 
 STRUCT script game
 {
+	enum bitmaptype //Used for flip-flop of bitmaps
+	{ screen, full, solid, type, flag, iflag, overscan, overscan_solid, overscan_type, overscan_flag, overscan_iflag, border, max };
 	
 	int frame = 0;
 	int drawspells = 1;
+	int drawbattlemenu = 0;
+	bitmap currentBitmaps[max];
+	//bool alt_bitmaps;
+	void setBitmaps(bool main) //setBitmaps(true) sets the main bitmals, false the alt.
+	{
+		if ( main )
+		{
+			currentBitmaps[screen] = bitmaps.scrn;
+			currentBitmaps[full] = bitmaps.fullmap;
+			currentBitmaps[solid] = bitmaps.fullmap_solid;
+			currentBitmaps[type] = bitmaps.fullmap_type;
+			currentBitmaps[flag] = bitmaps.fullmap_flag;
+			currentBitmaps[iflag] = bitmaps.fullmap_iflag;
+			currentBitmaps[overscan] = bitmaps.overscan;
+			currentBitmaps[overscan_solid] = bitmaps.overscan_solid;
+			currentBitmaps[overscan_type] = bitmaps.overscan_type;
+			currentBitmaps[overscan_flag] = bitmaps.overscan_flag;
+			currentBitmaps[overscan_iflag] = bitmaps.overscan_iflag;
+			currentBitmaps[border] = bitmaps.border;
+			//alt_bitmaps = false;
+		}
+		else
+		{
+			currentBitmaps[screen] = bitmaps.scrn;
+			currentBitmaps[full] = bitmaps.fullmap_second;
+			currentBitmaps[solid] = bitmaps.fullmap_solid_second;
+			currentBitmaps[type] = bitmaps.fullmap_type_second;
+			currentBitmaps[flag] = bitmaps.fullmap_flag_second;
+			currentBitmaps[iflag] = bitmaps.fullmap_iflag_second;
+			currentBitmaps[overscan] = bitmaps.overscan_second;
+			currentBitmaps[overscan_solid] = bitmaps.overscan_solid_second;
+			currentBitmaps[overscan_type] = bitmaps.overscan_type_second;
+			currentBitmaps[overscan_flag] = bitmaps.overscan_flag_second;
+			currentBitmaps[overscan_iflag] = bitmaps.overscan_iflag_second;
+			currentBitmaps[border] = bitmaps.border_second;
+			//alt_bitmaps = true;
+		}
+		
+	}
 	
 }
 
