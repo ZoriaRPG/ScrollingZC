@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.10.0          ///
+/// ALPHA v1.10.1          ///
 /// 15th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -104,6 +104,7 @@
 //        : Slight modification to drawing in other menus. Don't draw rects every iteration of the stats loop!
 //        : Added duplicate bitmaps for use when warping. We will blit the dest to these, then flip-flop the current drawn bitmaps.
 //        : Added game.currentBitmaps[max];
+// v1.10.1: Border map and screen are now set in the DMap Script InitD, rather than in Game->Misc[], so that they can vary on a per-DMap basis.
 
 //! NOTES: spelltype needa a 'none' value, for NULL, so that we csan have 'P0' for levelups, when not learning new spells. 
 
@@ -2012,7 +2013,7 @@ dmapdata script scroll
 	int scrollcounty;
 	int lastScrn;
 	int xPos = 256; int yPos = 176; //Positional data starts here. 
-	void run(int screens_wide, int screens_high, int cam_xpos, int cam_ypos) //adjust the scrolling field based on this, rather than on fixed sizes. 
+	void run(int screens_wide, int screens_high, int cam_xpos, int cam_ypos, int borderMap, int borderScreen) //adjust the scrolling field based on this, rather than on fixed sizes. 
 	{
 		if ( cam_xpos ) xPos = cam_xpos;
 		if ( cam_ypos ) yPos = cam_ypos;
@@ -2024,7 +2025,7 @@ dmapdata script scroll
 		// bitmap image1 = Game->AllocateBitmap();
 		// image1->Read(0,"test.png");
 		bitmaps.Clear();
-		bitmaps.border->DrawScreen(0, Game->Misc[mapInfo.blankMap], Game->Misc[mapInfo.blankScreen], 0, 0, 0);
+		bitmaps.border->DrawScreen(0, borderMap, borderScreen, 0, 0, 0);
 		
 		
 		//Add OVERSCAN to visible map. 
