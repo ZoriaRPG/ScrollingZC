@@ -2,8 +2,8 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 22, or Later     ///
-/// ALPHA v1.10.1          ///
-/// 15th May, 2019         ///
+/// ALPHA v1.10.2          ///
+/// 26th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
 // v0.2.0 : Added Solidity
@@ -167,6 +167,62 @@ namespace std
 	}
 }
 
+STRUCT script weaponshop
+{
+	void setup(int firststring)
+	{
+		/*STRING FORMAT	: item id @discount *
+		* here, is a spacing delimiter. We might use ; instead.
+		The item ID will be used to get its name.
+		We put its name in the shop menu list
+		We get its price from itemdata, via 
+		itemdata id = Game->LoadItemData(id);
+		//We display its name in the list from id->GetName
+		We get its base costs
+		Then we reduce that cost @discount
+		We can use & to increase the price. 
+		
+		Example strings
+		1@0*35@0*105@10*17@0*24@15*160&100
+		6 items:
+		1, no discount
+		35, no discount
+		105, -10GP
+		17, no discount
+		24, -15GP
+		160, +100GP
+		
+		
+		
+	}
+	
+}
+
+STRUCT script armourshop
+{
+	
+	
+}
+
+STRUCT script toolsshop
+{
+	
+	
+}
+
+STRUCT script equipment
+{
+	
+	//get the name, stats and price
+	const int price = 2; //ATTRIBUTES 2
+	//dice in damage (d6s) = this->Damage
+	const int speed = 3; //attributes[3]
+	const int special = 4; //attributes 4
+	
+	//itemdata GetName
+	
+	
+}
 
 namespace rpg
 {
