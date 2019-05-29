@@ -2,7 +2,7 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 23, or Later     ///
-/// ALPHA v1.11.0          ///
+/// ALPHA v1.11.1          ///
 /// 29th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
@@ -115,7 +115,9 @@
 //        :     t/b/c next build; we will also need a status menu
 //        :     Added bitmaps to STRUCT shop, and updated its init and clear constructors.
 //        :     Call shop.init() in hero.init.
-
+// v1.11.1: Added shop.resize(shopbitmaps, int, int), and some vertical and horizontal padding constants to STRUCT shop.
+//        : This allows resizing a bitmap to fit its text.
+//        : Added void shop.draw(int layer, bitmap target, shopbitmaps which_bitmap, int x, int y)
 
 
 //! NOTES: spelltype needa a 'none' value, for NULL, so that we csan have 'P0' for levelups, when not learning new spells. 
@@ -221,8 +223,19 @@ STRUCT script shop
 	const int MAGICSHOP = 4; //Screen->initD[]
 	int itemnames[maxitems,65]; //! 64 is the max length of an item name, 63 chars + NULL.
 	bitmap inventory;
+	/*! Shop inventory menu 
+	
+		The menu should list the total number of names in a vertical column, each with its price, 
+		aligned to the right in a second column.
+	
+		It may be viable to resize the menu hight based on the number of entries.
+	
+	*/
 	bitmap dialogue;
 	bitmap buy;
+	
+	
+	
 	
 	const int invX = 100;
 	const int invY = 10;
@@ -242,8 +255,71 @@ STRUCT script shop
 	const int buyW = 100;
 	const int buyLayer = 4;
 	
+	const int textLineHeight = 17;
+	const int invVPadding = 10; //Vertical overscan padding to ensure that we never draw off of the bitmap. 
+	const int dlgVPadding = 10;
+	const int buyVPadding = 10;
 	
+	const int invHPadding = 2; //Horizontal overscan padding to ensure that we never draw off of the bitmap. 
+	const int dlgHPadding = 2;
+	const int buyHPadding = 2;
+
+	enum shopbitmaps { bInventory, bDialogue, bBuyOptions };
+	void resize(shopbitmaps which_bitmap, int num_lines, int new_width)
+	{
+		switch(which_bitmap)
+		{
+			case bInventory: 
+			{
+				inventory->Create(invLayer, invW + invHPadding, (num_lines*textLineHeight) + invVPadding); 
+				break;
+			}
+			case bDialogue: 
+			{
+				dialogue->Create(dlgLayer, ( ( new_width > 0 ) ? new_width : dlgW ) + dlgHPadding, 
+					(num_lines*textLineHeight) + dlgVPadding); 
+				break;
+			}
+			case bBuyOptions: 
+			{
+				buy->Create(buyLayer, ( ( new_width > 0 ) ? new_width : buyW ) + buyHPadding, 
+					(num_lines*textLineHeight) + buyVPadding); 
+				break;
+			}
+			
+		}
+	}
 	
+	void draw(int layer, bitmap target, shopbitmaps which_bitmap, int x, int y)
+	{
+		
+		if ( !(<int>target) ) target = <bitmap>(-2); //Sanity check, draw to the screen or current RT.
+		
+		switch(which_bitmap)
+		{
+			case bInventory: 
+			{
+				inventory->Blit((( layer > -1 && layer < 8 ) ? layer : invLayer ), target, 0, 0, inventory->Width, inventory->Height,
+					x, y-56+1, inventory->Width, inventory->Height, 0,0,0,0,0,false); 
+				break;
+			}
+			case bDialogue: 
+			{
+				dialogue->Blit((( layer > -1 && layer < 8 ) ? layer : dlgLayer ), target, 0, 0, dialogue->Width, dialogue->Height,
+					x, y-56+1, dialogue->Width, dialogue->Height, 0,0,0,0,0,false); 
+				break;
+			}
+			case bBuyOptions: 
+			{
+				buy->Blit((( layer > -1 && layer < 8 ) ? layer : buyLayer ), target, 0, 0, buy->Width, buy->Height,
+					x, y-56+1, buy->Width, buy->Height, 0,0,0,0,0,false); 
+				break;
+			}
+			
+		}
+		
+		
+	}
 	int prices[maxitems,7];
 	void clear()
 	{
