@@ -1,9 +1,9 @@
 //////////////////////////////
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
-/// Alpha 22, or Later     ///
-/// ALPHA v1.10.2          ///
-/// 26th May, 2019         ///
+/// Alpha 23, or Later     ///
+/// ALPHA v1.11.0          ///
+/// 29th May, 2019         ///
 //////////////////////////////
 // v0.1.0 : Initial Base
 // v0.2.0 : Added Solidity
@@ -105,6 +105,18 @@
 //        : Added duplicate bitmaps for use when warping. We will blit the dest to these, then flip-flop the current drawn bitmaps.
 //        : Added game.currentBitmaps[max];
 // v1.10.1: Border map and screen are now set in the DMap Script InitD, rather than in Game->Misc[], so that they can vary on a per-DMap basis.
+// v1.11.0: Begin adding shops / item management:
+//        : Added namespace iteminfo, with functions getName, getPrice, and overloads.
+//        : Added STRUCT shop, with members prices[] and itemnames[], constant maxiutems (max per shop), shop type constants for Screen->InitD
+//        :     and member function clear().
+//        : Added item script weaponshop, with functions run(), setup().
+//        :     We will call this arbitrarily via itemdata->Runscript, attaching this to a 'SHOP' item.
+//        :     This allows only one shop to run at a time.
+//        :     t/b/c next build; we will also need a status menu
+//        :     Added bitmaps to STRUCT shop, and updated its init and clear constructors.
+//        :     Call shop.init() in hero.init.
+
+
 
 //! NOTES: spelltype needa a 'none' value, for NULL, so that we csan have 'P0' for levelups, when not learning new spells. 
 
@@ -167,9 +179,143 @@ namespace std
 	}
 }
 
-STRUCT script weaponshop
+namespace iteminfo
 {
-	void setup(int firststring)
+	const int PRICE = 5; //Attributes 5
+	//! Returns the literal value of the price. 
+	int getPrice(int item_id)
+	{
+		itemdata idata = Game->LoadItemData(item_id);
+		return idata->Attributes[PRICE];
+	}
+	//! Places the price into a string 'buffer' and returns the pointer to that string. 
+	int getPrice(int buffer, int item_id)
+	{
+		itemdata idata = Game->LoadItemData(item_id);
+		itoa(buffer, idata->Attributes[PRICE]);
+		return buffer; 
+	}
+	//! Places the name of an item into a buffer, removing all trailing spaces, then returns the pointer to that string. 
+	int getName(int buffer, int item_id)
+	{
+		itemdata idata = Game->LoadItemData(item_id);
+		idata->GetName(buffer);
+		//Remove trailing spaces:
+		for ( int q = (SizeOfArray(buffer)-1); (buffer[q] != ' ' && buffer[q] != 0); --q )
+		{
+			buffer[q] = 0;
+		}
+		return buffer; //Returns pointer to string. 
+		
+		
+	}
+	
+}
+
+STRUCT script shop
+{
+	const int maxitems = 16;
+	const int WEAPONSHOP = 1; //Screen->initD[]
+	const int TOOLSHOP = 2; //Screen->initD[]
+	const int ARMOURSHOP = 3; //Screen->initD[]
+	const int MAGICSHOP = 4; //Screen->initD[]
+	int itemnames[maxitems,65]; //! 64 is the max length of an item name, 63 chars + NULL.
+	bitmap inventory;
+	bitmap dialogue;
+	bitmap buy;
+	
+	const int invX = 100;
+	const int invY = 10;
+	const int invH = 100;
+	const int invW = 100;
+	const int invLayer = 2;
+	
+	const int dlgX = 100;
+	const int dlgY = 10;
+	const int dlgH = 100;
+	const int dlgW = 100;
+	const int dlgLayer = 2;
+	
+	const int buyX = 100;
+	const int buyY = 10;
+	const int buyH = 100;
+	const int buyW = 100;
+	const int buyLayer = 4;
+	
+	
+	
+	int prices[maxitems,7];
+	void clear()
+	{
+		for ( int q = SizeOfArray(itemnames-1); q > 0; --q ) itemnames[q] = 0;
+		for ( int q = SizeOfArray(prices-1); q > 0; --q ) prices[q] = 0;
+		inventory->Create(invLayer, invW, invH); //clear bitmaps for re-use
+		dialogue->Create(dlgLayer, dlgW, dlgH);
+		buy->Create(buyLayer, buyW, buyH);
+	}
+	void init()
+	{
+		inventory = Game->CreateBitmap(invW, invH);
+		dialogue = Game->CreateBitmap(dlgW, dlgH);
+		buy = Game->CreateBitmap(buyW, buyH);
+		
+	}
+}
+
+//if I made these item scripts, I can arbitrarily run them with itemdata->RunScript()!
+item script weaponshop
+{
+	
+	int stack[256];
+	
+	
+	
+	
+	//int strings[shop.maxitems,256];
+	//! We call this when we load any shop. 
+	//! it needn't be terribly fast, but we first need to call shop.clear(). 
+	//! Thereafter, we construct its menu and display it. 
+	
+	const int SELECTION = 0;
+	const int CURSOR_POS = 1;
+	void run()
+	{
+		//we need a way to determine the string being used for this shop!
+		//only ffcs are flexible-enough to provide randomply placed data values, so we will need to read a 
+		//list of screen ffcs, and find one with the values that we want. 
+		//While screen scripts have initD, we would not have enough slots for both the shops, and for running an actual screen script. 
+		//Although Screen->InitD[] remains an option if desired. 
+		shop.clear();
+		mapdata md = Game->LoadMapData(mapInfo.curMap, mapInfo.curScreen);
+		setup(md->InitD[shop.WEAPONSHOP]);
+		LogPrint("Shop item names: %s \n", shop.itemnames);
+		LogPrint("Shop item prices: %s \n", shop.prices);
+		int choice; int f; int data[3];
+		until(choice)
+		{
+			++f;
+			choice = menu(data);
+			if ( !(f%60)) { LogPrint("Weapon Shop is %s \n", "Running"); }
+			Waitframe();
+		}
+		
+		
+	}
+	int menu(int ptr)
+	{
+		//int selection: ptr[SELECTION]
+		//int cursor_pos: ptr[CURSOR_POS]
+		//setup menu
+		
+		//draw menu
+		
+		//draw cursor
+		
+		if ( Hero->PressA ) return ptr[SELECTION];
+		if ( Hero->PressB ) return -1;
+		
+	}
+	void setup(int first_str) 
 	{
 		/*STRING FORMAT	: item id @discount *
 		* here, is a spacing delimiter. We might use ; instead.
@@ -183,7 +329,7 @@ STRUCT script weaponshop
 		We can use & to increase the price. 
 		
 		Example strings
-		1@0*35@0*105@10*17@0*24@15*160&100
+		1@0,35@0,105@10,17@0,24@15,160&100!
 		6 items:
 		1, no discount
 		35, no discount
@@ -191,23 +337,140 @@ STRUCT script weaponshop
 		17, no discount
 		24, -15GP
 		160, +100GP
+		! is end of list
 		
+		*/
 		
+		//get atring data
+		if ( !first_str ) return; //Abort if pointing at NULL.
+		//Get the first string, and read in sequence, each 'next strick', pushing each to the stack.
+		//stack[0] will be the total count, stack[1] and above will be the string IDs. 
+		stack[1] = first_str; ++stack[0]; int nx;
+		messagedata the_message = Game->LoadMessageData(first_str);
+		//
+		while(the_message->Next)
+		{
+			++stack[0];
+			nx = the_message->Next;
+			LogPrint("Next String in sequence is: %d \n", nx);
+			stack[stack[0]] = nx;
+			
+			the_message = Game->LoadMessageData(nx);
+		}
+		//string IDs are loaded onto the stack, so we extract them.
+		 int item_pos; 
+		int ids[shop.maxitems], discounts[shop.maxitems]; 
+		//for each string, and thus each valid ite,m
+		for ( int q = 1; q < (stack[0]); ++q )
+		{
+			if ( item_pos >= shop.maxitems ) 
+			{
+				LogPrint("CSV List exceeded maximum number of items for a shop. Count was %d \n", item_pos);
+				break;
+			}
+			//get the item ID, first:
+			int details[256];
+			
+			bool discount_is_negative; //if true, the cost increases. 
+			int tmp[10];
+			int temp_pos;
+			Game->GetMessage(stack[q],details); //stack[q] holds the current message ID
+			for ( int qw = 0; details[qw] != 0; ++qw )
+			{
+				if ( item_pos >= shop.maxitems ) 
+				{
+					LogPrint("CSV List exceeded maximum number of items for a shop. Count was %d \n", item_pos);
+					break;
+				}
+				//find tokens
+				//do noting until we hit a valid number
+				if ( isNumber(details[qw]) )
+				{
+					tmp[temp_pos] = details[qw];
+					if ( isNumber(details[qw+1]) ) //continuation of a number
+					{
+						++temp_pos; continue;
+					}
+					else if ( details[qw+1] == '@' ) //next char is @, so this is the id
+					{
+						ids[item_pos] = atoi(tmp);
+						//wipe temp and reset temp_pos
+						for ( int aa = 0; aa < 10; ++aa ) tmp[aa] = 0;
+						temp_pos = 0;
+						discount_is_negative = false;
+					}
+					else if ( details[qw+1] == '&' ) //next char is @, so this is the id
+					{
+						ids[item_pos] = atoi(tmp);
+						//wipe temp and reset temp_pos
+						for ( int aa = 0; aa < 10; ++aa ) tmp[aa] = 0;
+						temp_pos = 0;
+						discount_is_negative = true;
+					}
+					else if ( details[qw+1] == ',' ) //next item in CSV list
+					{
+						//temp pos contains the discount value:
+						discounts[item_pos] = (atoi(tmp) * ( discount_is_negative ? -1 : 1));
+						//wipe temp and reset temp_pos
+						for ( int aa = 0; aa < 10; ++aa ) tmp[aa] = 0;
+						temp_pos = 0;
+						//advance to next item
+						++item_pos;
+						if ( item_pos >= shop.maxitems ) 
+						{
+							LogPrint("CSV List exceeded maximum number of items for a shop. Count was %d \n", item_pos);
+							break;
+						}
+					}
+					else if ( details[qw+1] == '!' ) //end of list
+					{
+						break;
+					}
+					else //still a number 
+					{
+						LogPrint("CSV list containted an illegal character: %d \n", details[qw+1]);
+						LogPrint("THe full string was: %s \n", details);
+					}
+					
+				}
+			}
+		} //end loading all string data into ids[shop.maxitems] and discounts[shop.maxitems]
+		for ( int q = 0; q < shop.maxitems; ++q )
+		{
+			
+			//get the names
+			int tempname[65]; int tempprice[7];
+			if ( ids[q] ) //not an invalid item
+			{
+				iteminfo::getName(tempname, ids[q]);
+				tempname[64] = ','; //terminator/separator
+				strcat(shop.itemnames, tempname); //append the name to the main list
+				
+				//get the price, applying the discount
+				int price = iteminfo::getPrice(ids[q]);
+				price += discounts[q];
+				itoa(tempprice, price);
+				tempprice[6] = ','; //terminator/separator
+				strcat(shop.prices, tempprice); //append the final price to the main list
+			}
+			
+
+		}			
 		
-	}
+	} //end weaponshop.setup()
 	
 }
 
-STRUCT script armourshop
+ffc script armourshop
 {
-	
+	void run(){}
 	
 }
 
-STRUCT script toolsshop
+ffc script toolsshop
 {
 	
-	
+	void run(){}
 }
 
 STRUCT script equipment
@@ -1784,6 +2047,7 @@ hero script h_init
 	{
 		//menu::init();
 		bitmaps.Init();
+		shop.init();
 		//statsmenu.setMessages(1, 5);
 		this->CollDetection = false;
 		spells.init(Game->Misc[spells.stringMin], Game->Misc[spells.windowColumns], 
