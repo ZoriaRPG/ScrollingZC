@@ -2,8 +2,8 @@
 /// Scrolling System       ///
 /// for Zelda Classic 2.55 ///
 /// Alpha 23, or Later     ///
-/// ALPHA v1.11.1          ///
-/// 29th May, 2019         ///
+/// ALPHA v1.12.1          ///
+/// 10th June, 2019        ///
 //////////////////////////////
 // v0.1.0 : Initial Base
 // v0.2.0 : Added Solidity
@@ -118,6 +118,9 @@
 // v1.11.1: Added shop.resize(shopbitmaps, int, int), and some vertical and horizontal padding constants to STRUCT shop.
 //        : This allows resizing a bitmap to fit its text.
 //        : Added void shop.draw(int layer, bitmap target, shopbitmaps which_bitmap, int x, int y)
+// v1.12.0: Updated for 2.55 Alpha 25. For some reason, ZC gives a lot of errors about screen npc limit reached. 
+// v1.12.1: Added rpg::ISRPG, tied to Game->Misc[0]. If this is set to 0 (false), then the rpg INIT FUNCTIONS DO NOT RUN,
+//        : and some other conditions that RPGs expect are nullified. 
 
 
 //! NOTES: spelltype needa a 'none' value, for NULL, so that we csan have 'P0' for levelups, when not learning new spells. 
@@ -194,7 +197,7 @@ namespace iteminfo
 	int getPrice(int buffer, int item_id)
 	{
 		itemdata idata = Game->LoadItemData(item_id);
-		itoa(buffer, idata->Attributes[PRICE]);
+		std::string::itoa(buffer, idata->Attributes[PRICE]);
 		return buffer; 
 	}
 	//! Places the name of an item into a buffer, removing all trailing spaces, then returns the pointer to that string. 
@@ -525,7 +528,7 @@ item script weaponshop
 				//get the price, applying the discount
 				int price = iteminfo::getPrice(ids[q]);
 				price += discounts[q];
-				itoa(tempprice, price);
+				std::string::itoa(tempprice, price);
 				tempprice[6] = ','; //terminator/separator
 				strcat(shop.prices, tempprice); //append the final price to the main list
 			}
@@ -571,6 +574,7 @@ namespace rpg
 	//int data[RPG_DATA_SIZE];
 	
 	//def DRAWSTATS = Game->Misc[2]; 
+	def ISRPG = 0;
 	def DRAWSTATS = 2;
 	def RPG_VERSION = 1.101;
 	def RPG_ISBETA = -1; //1 for beta, 0 for release, -1 for alpha.
@@ -1535,7 +1539,7 @@ STRUCT script statsmenu
 				curmsg[w] = 0; //clear trailing spaces
 			}
 			//LogPrint("values[] %d is %d \n", q, values[q]);
-			itoa(curvalue, values[q]);
+			std::string::itoa(curvalue, values[q]);
 			int spacing[10];
 			spacing[q] = strlen(curvalue); //Chars are variable width. We need a text map of them as an enum. 
 			//for ( int ww = 0; curvalue[ww] != 0; ++ww ) len_x += data[font_width]; //Get numerical text width
@@ -2092,27 +2096,38 @@ global script Init
 	void run()
 	{
 		for ( int q = 0; q < 32; ++q )
+		{
 			LogPrint("Game->Misc[ %d is: %f \n", q, Game->Misc[q]);
+		}
 		//rpg::data[rpg::VERSION] = RPG_VERSION;
 		//rpg::data[rpg::BETA] = RPG_ISBETA;
-		vital.init({1, 16, 0, 20, 0, rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6) });
-		//for ( int q = 0; q < 13; ++q ) LogPrint("vital.stat[] %d is %d \n", q, vital.stat[q]);
-		//level, hp, mp, gold, exp, str, dex, wis, con, cha, mind, soul, luck, last };
-		//statsmenu.init({1, statsmenu.X, statsmenu.Y, -1, -1, -1, statsmenu.COLOUR, statsmenu.FONT, statsmenu.FONT_H, 
-		//	statsmenu.FONT_W, statsmenu.KERN, statsmenu.BG, statsmenu.bWidth, statsmenu.bHeight, statsmenu.msg, -1});
-		statsmenu.init();
-		statsmenu.setMenuProperties(1, statsmenu.X, -56, -1, 5, statsmenu.COLOUR, statsmenu.FONT, statsmenu.FONT_H,
-			statsmenu.FONT_W, statsmenu.KERN, statsmenu.BG, statsmenu.bWidth, statsmenu.bHeight, statsmenu.msg, -1);
-		
-		statsmenu.setMessages(Game->Misc[statsmenu.statsFirstmessage]);
-		
-		switch(rpg::Beta())
+		if ( Game->Misc[rpg::ISRPG] ) //for non-RPG scrolling quests.
 		{
-			case -1: LogPrint("RPG.zh Status: %s \n", "ALPHA"); break;
-			case 1: LogPrint("RPG.zh Status: %s \n", "BETA"); break;
-			default: LogPrint("RPG.zh Status: %s \n", "RELEASE"); break;
+			vital.init({1, 16, 0, 20, 0, rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6), rpg::dice::roll(6) });
+			//for ( int q = 0; q < 13; ++q ) LogPrint("vital.stat[] %d is %d \n", q, vital.stat[q]);
+			//level, hp, mp, gold, exp, str, dex, wis, con, cha, mind, soul, luck, last };
+			//statsmenu.init({1, statsmenu.X, statsmenu.Y, -1, -1, -1, statsmenu.COLOUR, statsmenu.FONT, statsmenu.FONT_H, 
+			//	statsmenu.FONT_W, statsmenu.KERN, statsmenu.BG, statsmenu.bWidth, statsmenu.bHeight, statsmenu.msg, -1});
+			statsmenu.init();
+			statsmenu.setMenuProperties(1, statsmenu.X, -56, -1, 5, statsmenu.COLOUR, statsmenu.FONT, statsmenu.FONT_H,
+				statsmenu.FONT_W, statsmenu.KERN, statsmenu.BG, statsmenu.bWidth, statsmenu.bHeight, statsmenu.msg, -1);
+			
+			statsmenu.setMessages(Game->Misc[statsmenu.statsFirstmessage]);
+			
+			switch(rpg::Beta())
+			{
+				case -1: LogPrint("RPG.zh Status: %s \n", "ALPHA"); break;
+				case 1: LogPrint("RPG.zh Status: %s \n", "BETA"); break;
+				default: LogPrint("RPG.zh Status: %s \n", "RELEASE"); break;
+			}
+			LogPrint("RPG.zh Version: %f \n", rpg::Version());
 		}
-		LogPrint("RPG.zh Version: %f \n", rpg::Version());
+		else 
+		{
+			game.drawspells = 0;
+		}
+		
+		
 	}
 }
 
@@ -2123,15 +2138,18 @@ hero script h_init
 	{
 		//menu::init();
 		bitmaps.Init();
-		shop.init();
+		//know(shop.init();
 		//statsmenu.setMessages(1, 5);
 		this->CollDetection = false;
-		spells.init(Game->Misc[spells.stringMin], Game->Misc[spells.windowColumns], 
-			Game->Misc[spells.windowRows], spells.bWidth, spells.bHeight);
-		spells.listall();
-		character.init(Game->Misc[character.lvlStrFirst]);
-		xp.init(Game->Misc[xp.firstXPstring]);
-		xp.print();
+		if ( Game->Misc[0] )
+		{
+			spells.init(Game->Misc[spells.stringMin], Game->Misc[spells.windowColumns], 
+				Game->Misc[spells.windowRows], spells.bWidth, spells.bHeight);
+			spells.listall();
+			character.init(Game->Misc[character.lvlStrFirst]);
+			xp.init(Game->Misc[xp.firstXPstring]);
+			xp.print();
+		}
 		//(int layer, bitmap dest, int columns, int rows, int spacing_x, int spacing_y, int font, int colour)
 		
 	}
